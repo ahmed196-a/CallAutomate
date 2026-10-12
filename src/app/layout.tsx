@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -46,10 +45,6 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <Script
-          src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
-          strategy="beforeInteractive"
-        />
         {children}
       </body>
     </html>

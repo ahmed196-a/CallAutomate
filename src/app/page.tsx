@@ -46,9 +46,9 @@ export default function Home() {
           ["u", "Collection, in 30 minutes."],
         ],
         t: [
-          ["2× Large pepperoni", "£26.00"],
-          ["1× Garlic bread", "£5.50"],
-          ["Collect 7:45 pm", "£31.50"],
+          ["2× Large pepperoni", "€26.00"],
+          ["1× Garlic bread", "€5.50"],
+          ["Collect 7:45 pm", "€31.50"],
         ],
         w: 1,
       },
@@ -60,9 +60,9 @@ export default function Home() {
           ["c", "Done. Pay by link, ready in 15 min."],
         ],
         t: [
-          ["1× Tikka wrap", "£8.50"],
-          ["1× Cola", "£2.00"],
-          ["Ready 6:40 pm", "£10.50"],
+          ["1× Tikka wrap", "€8.50"],
+          ["1× Cola", "€2.00"],
+          ["Ready 6:40 pm", "€10.50"],
         ],
       },
       web: {
@@ -73,9 +73,9 @@ export default function Home() {
           ["u", "Yes please."],
         ],
         t: [
-          ["1× Smash burger", "£12.00"],
-          ["2× Fries", "£7.00"],
-          ["Delivery 8:10 pm", "£19.00"],
+          ["1× Smash burger", "€12.00"],
+          ["2× Fries", "€7.00"],
+          ["Delivery 8:10 pm", "€19.00"],
         ],
       },
     };
@@ -83,7 +83,29 @@ export default function Home() {
     const ch = document.getElementById("ch");
     const tl = document.getElementById("tl");
     const st = document.getElementById("st");
+    const tryBox = document.getElementById("try") as any;
+
+    if (tryBox?._demoCleanup) {
+      tryBox._demoCleanup();
+    }
+    if ((window as any).__orderDemoCleanup) {
+      (window as any).__orderDemoCleanup();
+    }
+
     let T: ReturnType<typeof setTimeout>[] = [];
+    let orderGen = 0;
+
+    function cleanupOrderDemo() {
+      orderGen++;
+      T.forEach(clearTimeout);
+      T = [];
+    }
+
+    if (tryBox) {
+      tryBox._demoCleanup = cleanupOrderDemo;
+    }
+    (window as any).__orderDemoCleanup = cleanupOrderDemo;
+
     const R = document.documentElement.classList.contains("rm");
     const HM = R;
 
@@ -97,10 +119,13 @@ export default function Home() {
       e.innerHTML = wave();
     });
 
+    let currentKey = "call";
+
     function play(k: string) {
+      currentKey = k;
       if (!ch || !tl || !st) return;
-      T.forEach(clearTimeout);
-      T = [];
+      cleanupOrderDemo();
+      const currentGen = orderGen;
       const d = D[k];
       if (!d) return;
       ch.innerHTML = d.w ? '<div class="wv">' + wave() + "</div>" : "";
@@ -111,6 +136,7 @@ export default function Home() {
         T.push(
           setTimeout(
             () => {
+              if (orderGen !== currentGen) return;
               const m = document.createElement("div");
               m.className = "m " + (x[0] === "c" ? "cs" : "us");
               m.textContent = x[1];
@@ -131,11 +157,24 @@ export default function Home() {
       T.push(
         setTimeout(
           () => {
+            if (orderGen !== currentGen) return;
             st.innerHTML = '<div class="sent">✓ Sent to your POS</div>';
           },
           R ? 0 : 6200
         )
       );
+
+      if (!R) {
+        T.push(
+          setTimeout(
+            () => {
+              if (orderGen !== currentGen) return;
+              play(currentKey);
+            },
+            9200
+          )
+        );
+      }
     }
 
     document.querySelectorAll(".tabs button").forEach((b) => {
@@ -144,6 +183,7 @@ export default function Home() {
           x.setAttribute("aria-selected", String(x === b));
         });
         const key = (b as HTMLElement).dataset.k || "call";
+        currentKey = key;
         play(key);
       };
     });
@@ -208,7 +248,7 @@ export default function Home() {
               if (p.x < 0 || p.x > W) p.vx *= -1;
               if (p.y < 0 || p.y > H) p.vy *= -1;
             }
-            c.fillStyle = "rgba(110,80,240,.75)";
+            c.fillStyle = "rgba(46,115,237,.75)";
             c.beginPath();
             c.arc(p.x, p.y, 2.2, 0, 6.3);
             c.fill();
@@ -311,9 +351,9 @@ export default function Home() {
             a++;
             rev += v;
             if (n1) n1.textContent = String(a);
-            if (n2) n2.textContent = "£" + rev;
+            if (n2) n2.textContent = "€" + rev;
             t.className = "t done";
-            t.lastChild.textContent = "£" + v + " order";
+            t.lastChild.textContent = "€" + v + " order";
           }, 2900);
 
           setTimeout(() => {
@@ -341,15 +381,91 @@ export default function Home() {
         '<div class="wv">' +
           wave() +
           '</div><h4>AI is listening</h4><p class="q">“Two large pepperoni and a garlic bread, collection in thirty minutes.”</p>',
-        '<h4>Order understood</h4><div class="ch2">2× Large pepperoni</div><div class="ch2" style="animation-delay:.25s">1× Garlic bread</div><div class="ch2" style="animation-delay:.5s">Collect 7:45 pm · £31.50</div>',
+        '<h4>Order understood</h4><div class="ch2">2× Large pepperoni</div><div class="ch2" style="animation-delay:.25s">1× Garlic bread</div><div class="ch2" style="animation-delay:.5s">Collect 7:45 pm · €31.50</div>',
         '<div class="ok">✓</div><h4>Sent to Toast</h4><p>Order #1042 · printed in the kitchen</p>',
       ];
 
       const st = document.getElementById("story");
       const stpEl = document.getElementById("stp");
-      const li = stpEl ? stpEl.children : [];
+      const li = stpEl ? stpEl.children : ([] as unknown as HTMLCollection);
       const dv = document.getElementById("dev");
       let cur = -1;
+      let isClickScrolling = false;
+      let clickTarget = -1;
+      let clickTimer: ReturnType<typeof setTimeout> | null = null;
+
+      function triggerPop(idx: number) {
+        if (!dv || idx < 0 || idx >= S.length) return;
+        cur = idx;
+        dv.innerHTML = S[idx];
+        dv.classList.remove("pop");
+        void dv.offsetWidth;
+        dv.classList.add("pop");
+      }
+
+      function selectStep(targetIdx: number) {
+        if (!st || !dv || targetIdx < 0 || targetIdx >= 4) return;
+        triggerPop(targetIdx);
+
+        for (let i = 0; i < 4; i++) {
+          if (li[i]) {
+            li[i].className = i === targetIdx ? "on pop" : "";
+            if (i === targetIdx) {
+              (li[i] as HTMLElement).style.setProperty("--p", "0.2");
+            }
+          }
+        }
+
+        isClickScrolling = true;
+        clickTarget = targetIdx;
+        if (clickTimer) clearTimeout(clickTimer);
+
+        const r = st.getBoundingClientRect();
+        const storyDocumentTop = window.scrollY + r.top;
+        const totalScrollable = r.height - window.innerHeight;
+        const targetP = (targetIdx + 0.15) / 4;
+        const targetScrollY = storyDocumentTop + targetP * totalScrollable;
+
+        window.scrollTo({
+          top: targetScrollY,
+          behavior: "smooth",
+        });
+
+        clickTimer = setTimeout(() => {
+          isClickScrolling = false;
+          clickTarget = -1;
+        }, 800);
+      }
+
+      for (let i = 0; i < li.length; i++) {
+        const item = li[i] as HTMLElement;
+        if (!item) continue;
+        item.style.cursor = "pointer";
+        item.setAttribute("role", "button");
+        item.setAttribute("tabindex", "0");
+        item.onclick = () => selectStep(i);
+        item.onkeydown = (e: KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            selectStep(i);
+          }
+        };
+      }
+
+      if (dv) {
+        dv.addEventListener("animationend", (e: AnimationEvent) => {
+          if (e.animationName === "devPop") {
+            dv.classList.remove("pop");
+          }
+        });
+      }
+
+      const resetClickLock = () => {
+        isClickScrolling = false;
+        clickTarget = -1;
+      };
+      window.addEventListener("wheel", resetClickLock, { passive: true });
+      window.addEventListener("touchstart", resetClickLock, { passive: true });
 
       function f() {
         if (!st || !dv) return;
@@ -359,20 +475,42 @@ export default function Home() {
           Math.min(0.999, -r.top / (r.height - window.innerHeight))
         );
         const k = Math.floor(p * 4);
-        for (let i = 0; i < 4; i++) {
-          if (li[i]) {
-            li[i].className = i === k ? "on" : "";
-            if (i === k) {
-              (li[i] as HTMLElement).style.setProperty(
-                "--p",
-                String(p * 4 - k)
-              );
-            }
+
+        if (isClickScrolling) {
+          if (k === clickTarget) {
+            isClickScrolling = false;
+            clickTarget = -1;
           }
         }
-        if (k !== cur) {
-          cur = k;
-          dv.innerHTML = S[k];
+
+        if (!isClickScrolling) {
+          for (let i = 0; i < 4; i++) {
+            if (li[i]) {
+              li[i].className = i === k ? "on" : "";
+              if (i === k) {
+                (li[i] as HTMLElement).style.setProperty(
+                  "--p",
+                  String(p * 4 - k)
+                );
+              }
+            }
+          }
+          if (k !== cur) {
+            cur = k;
+            dv.innerHTML = S[k];
+          }
+        } else {
+          for (let i = 0; i < 4; i++) {
+            if (li[i]) {
+              li[i].className = i === clickTarget ? "on" : "";
+              if (i === clickTarget) {
+                (li[i] as HTMLElement).style.setProperty(
+                  "--p",
+                  String(Math.max(0, Math.min(1, p * 4 - clickTarget)))
+                );
+              }
+            }
+          }
         }
       }
       window.addEventListener("scroll", f, { passive: true });
@@ -415,8 +553,8 @@ export default function Home() {
       const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 10);
       cam.position.z = 4.4;
 
-      let TA = new THREE.Color(0.43, 0.25, 0.96);
-      let TB = new THREE.Color(0.2, 0.45, 0.97);
+      let TA = new THREE.Color(0.043, 0.055, 0.102);
+      let TB = new THREE.Color(0.18, 0.45, 0.93);
       const U = {
         t: { value: 0 },
         u: { value: 0 },
@@ -467,8 +605,8 @@ export default function Home() {
 
       function rz() {
         const s = box.clientWidth;
-        rx = s * (s < 420 ? 0.4 : 0.5);
-        ry = s * 0.2;
+        rx = s * (s < 420 ? 0.44 : 0.52);
+        ry = s * (s < 420 ? 0.22 : 0.24);
         og.forEach((o) => {
           o.style.width = rx * 2 + "px";
           o.style.height = ry * 2 + "px";
@@ -537,10 +675,10 @@ export default function Home() {
             "px," +
             y +
             "px) scale(" +
-            (0.92 + 0.1 * z) +
+            (0.94 + 0.1 * ((z + 1) / 2)) +
             ")";
-          e.style.zIndex = z > 0 ? "3" : "0";
-          e.style.opacity = String(0.32 + (0.68 * (z + 1)) / 2);
+          e.style.zIndex = z > 0 ? "4" : "3";
+          e.style.opacity = "1";
         });
 
         if (!R) requestAnimationFrame(lp);
@@ -722,7 +860,7 @@ export default function Home() {
       const od = $("od");
       function roll(n: number) {
         if (!od) return;
-        const t = "£" + Math.round(n).toLocaleString("en-GB");
+        const t = "€" + Math.round(n).toLocaleString("en-GB");
         if (od.dataset.l !== String(t.length)) {
           od.dataset.l = String(t.length);
           od.innerHTML = t
@@ -762,10 +900,10 @@ export default function Home() {
           oo = $("oo"),
           yy = $("yy");
         if (vw) vw.textContent = String(w);
-        if (va) va.textContent = "£" + a;
+        if (va) va.textContent = "€" + a;
         if (vc) vc.textContent = Math.round(c * 100) + "%";
         if (oo) oo.textContent = Math.round(o).toLocaleString("en-GB");
-        if (yy) yy.textContent = "£" + Math.round(r * 12).toLocaleString("en-GB");
+        if (yy) yy.textContent = "€" + Math.round(r * 12).toLocaleString("en-GB");
         roll(r);
       }
 
@@ -933,11 +1071,41 @@ export default function Home() {
       }
 
       const T = [
-        ["Call answered", "Pizza order, collection 7:45"],
-        ["WhatsApp order", "Tikka wrap and cola, £10.50"],
-        ["Synced to Toast", "Order #1043 sent to the kitchen"],
-        ["Instagram DM", "Opening hours question answered"],
-        ["Website order", "Smash burger, delivery £19.00"],
+        {
+          cls: "ti-voice",
+          title: "Call answered",
+          sub: "Pizza order, collection 7:45",
+          time: "AI voice",
+          svg: '<svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>',
+        },
+        {
+          cls: "ti-wa",
+          title: "WhatsApp order",
+          sub: "Tikka wrap and cola, €10.50",
+          time: "WhatsApp",
+          svg: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+        },
+        {
+          cls: "ti-pos",
+          title: "Synced to Toast",
+          sub: "Order #1043 sent to kitchen",
+          time: "Live in POS",
+          svg: '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>',
+        },
+        {
+          cls: "ti-meta",
+          title: "Instagram DM",
+          sub: "Opening hours question answered",
+          time: "Meta DM",
+          svg: '<svg viewBox="0 0 24 24"><path d="M7 8c-3 0-4 8 0 8 3 0 5-8 10-8 4 0 4 8 0 8-5 0-7-8-10-8z"/></svg>',
+        },
+        {
+          cls: "ti-web",
+          title: "Website order",
+          sub: "Smash burger, delivery €19.00",
+          time: "AI website",
+          svg: '<svg viewBox="0 0 24 24"><path d="M3 5h18v14H3zM3 9h18"/></svg>',
+        },
       ];
       let k = 0;
       const ts = document.getElementById("tst");
@@ -945,16 +1113,32 @@ export default function Home() {
         if (!ts) return;
         const x = T[k++ % T.length];
         ts.innerHTML =
-          '<div class="ti"><i></i><div><b>' +
-          x[0] +
-          "</b><span>" +
-          x[1] +
+          '<div class="ti ' +
+          x.cls +
+          '"><i class="ti-ic">' +
+          x.svg +
+          '</i><div class="ti-bd"><div class="ti-top"><b>' +
+          x.title +
+          '</b><span class="ti-time">' +
+          x.time +
+          "</span></div><span>" +
+          x.sub +
           "</span></div></div>";
       }
-      setTimeout(
+
+      if ((window as any).__toastInterval) {
+        clearInterval((window as any).__toastInterval);
+      }
+      if ((window as any).__toastTimeout) {
+        clearTimeout((window as any).__toastTimeout);
+      }
+
+      (window as any).__toastTimeout = setTimeout(
         () => {
           nt();
-          if (!R) setInterval(nt, 3000);
+          if (!R) {
+            (window as any).__toastInterval = setInterval(nt, 3200);
+          }
         },
         R ? 0 : 2300
       );
@@ -975,31 +1159,31 @@ export default function Home() {
           "Phone",
           "Pickup 7:45 pm",
           ["2× Large pepperoni", "1× Garlic bread"],
-          "£31.50",
+          "€31.50",
         ],
         [
           "WhatsApp",
           "Pickup 6:40 pm",
           ["1× Tikka wrap", "1× Cola"],
-          "£10.50",
+          "€10.50",
         ],
         [
           "Website",
           "Delivery 8:10 pm",
           ["1× Smash burger", "2× Fries"],
-          "£19.00",
+          "€19.00",
         ],
         [
           "Instagram",
           "Pickup 7:05 pm",
           ["1× Dragon roll", "1× Miso soup"],
-          "£14.80",
+          "€14.80",
         ],
         [
           "Phone",
           "Delivery 8:30 pm",
           ["1× Lamb biryani", "2× Garlic naan"],
-          "£22.40",
+          "€22.40",
         ],
       ];
       const $ = (i: string) => document.getElementById(i);
@@ -1147,6 +1331,9 @@ export default function Home() {
 
       function demo(el: any, f: any) {
         if (!el) return;
+        if (el._demoCleanup) {
+          el._demoCleanup();
+        }
         let T: any[] = [],
           on = 0;
         const L = (g: any, m: any) => {
@@ -1174,7 +1361,7 @@ export default function Home() {
           });
           return;
         }
-        new IntersectionObserver(
+        const obs = new IntersectionObserver(
           (e) => {
             if (e[0].isIntersecting) {
               if (!on) {
@@ -1184,10 +1371,18 @@ export default function Home() {
             } else {
               on = 0;
               stop();
+              f.reset();
             }
           },
           { threshold: 0.3 }
-        ).observe(el);
+        );
+        obs.observe(el);
+        el._demoCleanup = () => {
+          on = 0;
+          stop();
+          obs.disconnect();
+          f.reset();
+        };
       }
 
       // Voice runner
@@ -1238,7 +1433,7 @@ export default function Home() {
             clearInterval(tk);
             sc = 0;
             if (ri) ri.innerHTML = "";
-            if (tv) tv.textContent = "£0.00";
+            if (tv) tv.textContent = "€0.00";
             const vstp = $("vstp");
             if (vstp) vstp.className = "vs";
             const vsd = $("vsd");
@@ -1284,14 +1479,14 @@ export default function Home() {
             [
               5100,
               () => {
-                add("2× Large pepperoni", "£26.00");
+                add("2× Large pepperoni", "€26.00");
               },
             ],
             [
               5700,
               () => {
-                add("1× Garlic bread", "£5.50");
-                if (tv) tv.textContent = "£31.50";
+                add("1× Garlic bread", "€5.50");
+                if (tv) tv.textContent = "€31.50";
               },
             ],
             [
@@ -1309,8 +1504,8 @@ export default function Home() {
             [
               9100,
               () => {
-                add("1× Cola", "£2.00");
-                if (tv) tv.textContent = "£33.50";
+                add("1× Cola", "€2.00");
+                if (tv) tv.textContent = "€33.50";
               },
             ],
             [
@@ -1336,7 +1531,7 @@ export default function Home() {
               () => {
                 say(
                   "ai",
-                  "Perfect. That's £33.50 and your order is in."
+                  "Perfect. That's €33.50 and your order is in."
                 );
               },
             ],
@@ -1418,13 +1613,14 @@ export default function Home() {
                 );
                 SF(b, k === "b" ? "pop" : "tick");
               }
+              b.scrollTop = b.scrollHeight;
             },
           ]),
         };
       }
 
       const card =
-        '<b>Your order</b><div class="oc"><span>2× Large pepperoni</span><span>£26.00</span></div><div class="oc"><span>1× Garlic bread</span><span>£5.50</span></div><div class="oc t"><span>Total</span><span>£31.50</span></div><div class="pay">Pay now</div>';
+        '<b>Your order</b><div class="oc"><span>2× Large pepperoni</span><span>€26.00</span></div><div class="oc"><span>1× Garlic bread</span><span>€5.50</span></div><div class="oc t"><span>Total</span><span>€31.50</span></div><div class="pay">Pay now</div>';
 
       demo(
         $("wab"),
@@ -1525,7 +1721,7 @@ export default function Home() {
         len: 15500,
         reset: () => {
           if (cu) cu.innerHTML = "";
-          if (ct) ct.textContent = "£0.00";
+          if (ct) ct.textContent = "€0.00";
           mi.forEach((m) => {
             m.className = "mi";
           });
@@ -1557,14 +1753,14 @@ export default function Home() {
           [
             3600,
             (L: any) => {
-              ad(L, 0, 2, "Pepperoni", "£26.00");
+              ad(L, 0, 2, "Pepperoni", "€26.00");
             },
           ],
           [
             4400,
             (L: any) => {
-              ad(L, 1, 1, "Garlic bread", "£5.50");
-              if (ct) ct.textContent = "£31.50";
+              ad(L, 1, 1, "Garlic bread", "€5.50");
+              if (ct) ct.textContent = "€31.50";
             },
           ],
           [
@@ -1589,8 +1785,8 @@ export default function Home() {
           [
             8300,
             (L: any) => {
-              ad(L, 2, 1, "Cola", "£2.00");
-              if (ct) ct.textContent = "£33.50";
+              ad(L, 2, 1, "Cola", "€2.00");
+              if (ct) ct.textContent = "€33.50";
             },
           ],
           [
@@ -1878,6 +2074,12 @@ export default function Home() {
 
     // Module 13: Incoming Call Intro Modal
     (() => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => {
+          window.speechSynthesis.getVoices();
+        };
+      }
       const $ = (i: string) => document.getElementById(i);
       const inn = $("in");
       const ia = $("ia") as HTMLImageElement;
@@ -2005,6 +2207,57 @@ export default function Home() {
         }, 36);
       }
 
+      function pickFemaleVoice(): SpeechSynthesisVoice | null {
+        if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+        const all = window.speechSynthesis.getVoices();
+        if (!all || !all.length) return null;
+
+        const isEnglish = (v: SpeechSynthesisVoice) => /^en/i.test(v.lang);
+        const isMale = (v: SpeechSynthesisVoice) =>
+          /\b(male|david|guy|mark|christopher|eric|george|brian|richard|steffan|roger|ryan|andrew|adam|steve|john|charles|paul|michael|james|alex|fred|daniel|oliver|thomas|william)\b/i.test(
+            v.name
+          );
+
+        const en = all.filter((v) => isEnglish(v) && !isMale(v));
+
+        const preferred = [
+          /jenny.*natural/i,
+          /aria.*natural/i,
+          /ava.*natural/i,
+          /michelle.*natural/i,
+          /emma.*natural/i,
+          /sonia.*natural/i,
+          /ana.*natural/i,
+          /natasha.*natural/i,
+          /clara.*natural/i,
+          /libby.*natural/i,
+          /samantha/i,
+          /karen/i,
+          /victoria/i,
+          /serena/i,
+          /moira/i,
+          /tessa/i,
+          /allison/i,
+          /google.*uk.*female/i,
+          /google.*female/i,
+          /google.*us/i,
+          /zira/i,
+          /jenny/i,
+          /aria/i,
+          /female/i,
+        ];
+
+        for (const regex of preferred) {
+          const match = en.find((v) => regex.test(v.name));
+          if (match) return match;
+        }
+
+        const natural = en.find((v) => /natural/i.test(v.name));
+        if (natural) return natural;
+
+        return en[0] || null;
+      }
+
       function talk(snd: number) {
         if (ans) return;
         ans = 1;
@@ -2033,32 +2286,60 @@ export default function Home() {
         });
 
         if (snd && typeof window !== "undefined" && "speechSynthesis" in window) {
-          try {
-            window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance(
-              "Hi, I'm Call Automate. I answer every call, so you never miss an order."
-            );
-            u.rate = 1;
-            u.pitch = 1.05;
-            const v = window.speechSynthesis
-              .getVoices()
-              .filter(
-                (x) =>
-                  /^en/i.test(x.lang) &&
-                  /female|samantha|google|zira|aria|natural/i.test(x.name)
-              )[0];
-            if (v) u.voice = v;
-            u.onend = u.onerror = () => {
+          const runSpeak = () => {
+            try {
+              window.speechSynthesis.cancel();
+              const u = new SpeechSynthesisUtterance(
+                "Hi! I'm CallAutomate. I answer every call, so you never miss an order."
+              );
+              u.rate = 0.98;
+              u.pitch = 1.15;
+
+              const v = pickFemaleVoice();
+              if (v) {
+                u.voice = v;
+                u.lang = v.lang || "en-US";
+              } else {
+                u.lang = "en-US";
+              }
+
+              let finished = false;
+              const complete = () => {
+                if (finished) return;
+                finished = true;
+                spD = true;
+                chk();
+              };
+
+              u.onend = complete;
+              u.onerror = complete;
+              window.speechSynthesis.speak(u);
+              setTimeout(complete, 8500);
+            } catch {
               spD = true;
               chk();
+            }
+          };
+
+          const voices = window.speechSynthesis.getVoices();
+          if (voices && voices.length > 0) {
+            runSpeak();
+          } else {
+            let called = false;
+            const handler = () => {
+              if (called) return;
+              called = true;
+              window.speechSynthesis.removeEventListener("voiceschanged", handler);
+              runSpeak();
             };
-            window.speechSynthesis.speak(u);
+            window.speechSynthesis.addEventListener("voiceschanged", handler, { once: true });
             setTimeout(() => {
-              spD = true;
-              chk();
-            }, 9000);
-          } catch {
-            spD = true;
+              if (!called) {
+                called = true;
+                window.speechSynthesis.removeEventListener("voiceschanged", handler);
+                runSpeak();
+              }
+            }, 250);
           }
         }
       }
@@ -2383,7 +2664,7 @@ export default function Home() {
         };
       }
 
-      form.onsubmit = (e) => {
+      form.onsubmit = async (e) => {
         e.preventDefault();
         if (!ok(cur)) return;
         if (cur < 2) {
@@ -2399,30 +2680,36 @@ export default function Home() {
         const r = ( $("k-r") as HTMLInputElement )?.value.trim() || "";
         const c = ( $("k-c") as HTMLInputElement )?.value.trim() || "";
         const m = ( $("k-m") as HTMLTextAreaElement )?.value.trim() || "";
+        const slotStr = sl();
 
-        const body =
-          "Name: " +
-          n +
-          "\nRestaurant: " +
-          r +
-          "\nContact: " +
-          c +
-          "\nInterested in: " +
-          p +
-          "\nPOS system: " +
-          pos +
-          "\nPreferred demo slot: " +
-          sl() +
-          " (" +
-          tz +
-          ")" +
-          (m ? "\nNotes: " + m : "");
+        if (nb) {
+          nb.setAttribute("disabled", "true");
+          nb.textContent = "Sending demo request...";
+        }
 
-        location.href =
-          "mailto:hello@callautomate.com?subject=" +
-          encodeURIComponent("Demo request: " + (r || n) + ", " + sl()) +
-          "&body=" +
-          encodeURIComponent(body);
+        try {
+          await fetch("/api/contact", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: n,
+              restaurant: r,
+              contact: c,
+              interestedIn: p,
+              pos: pos,
+              slot: slotStr,
+              tz: tz,
+              notes: m,
+            }),
+          });
+        } catch (err) {
+          console.error("Error sending demo request via SMTP:", err);
+        } finally {
+          if (nb) {
+            nb.removeAttribute("disabled");
+            nb.textContent = "Request my demo";
+          }
+        }
 
         const stDate = new Date(D[dk]);
         stDate.setHours(SL[tk][0], SL[tk][1], 0, 0);
@@ -2457,9 +2744,11 @@ export default function Home() {
         if (ksu) {
           ksu.innerHTML =
             "<span><b>When</b>" +
-            sl() +
+            slotStr +
             "</span><span><b>Name</b>" +
             n.replace(/</g, "&lt;") +
+            "</span><span><b>Restaurant</b>" +
+            r.replace(/</g, "&lt;") +
             "</span><span><b>POS</b>" +
             pos.replace(/</g, "&lt;") +
             "</span><span><b>Interested in</b>" +
@@ -2529,6 +2818,28 @@ export default function Home() {
         if (ok) location.reload();
       };
     })();
+
+    return () => {
+      const tryBox = document.getElementById("try") as any;
+      if (tryBox?._demoCleanup) tryBox._demoCleanup();
+      if ((window as any).__orderDemoCleanup) {
+        (window as any).__orderDemoCleanup();
+      }
+      if ((window as any).__toastInterval) {
+        clearInterval((window as any).__toastInterval);
+      }
+      if ((window as any).__toastTimeout) {
+        clearTimeout((window as any).__toastTimeout);
+      }
+
+      ["vd", "wab", "mtb"].forEach((id) => {
+        const el = document.getElementById(id) as any;
+        if (el?._demoCleanup) el._demoCleanup();
+      });
+      const ovEl = document.getElementById("ov");
+      const wbwEl = ovEl?.parentNode as any;
+      if (wbwEl?._demoCleanup) wbwEl._demoCleanup();
+    };
   }, []);
 
   return (
@@ -2849,45 +3160,45 @@ export default function Home() {
                 <img alt="" id="cr" src={LOGO_SRC} />
               </div>
               <div className="tst" id="tst" aria-hidden="true"></div>
-              <span className="chip">
+              <span className="chip chip-voice">
                 <i>
                   <svg viewBox="0 0 24 24">
                     <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" />
                   </svg>
                 </i>
-                Voice agent
+                <span>AI voice</span>
               </span>
-              <span className="chip">
+              <span className="chip chip-wa">
                 <i>
                   <svg viewBox="0 0 24 24">
                     <path d="M4 5h16v11H9l-5 4z" />
                   </svg>
                 </i>
-                WhatsApp
+                <span>WhatsApp</span>
               </span>
-              <span className="chip">
+              <span className="chip chip-meta">
                 <i>
                   <svg viewBox="0 0 24 24">
                     <path d="M7 8c-3 0-4 8 0 8 3 0 5-8 10-8 4 0 4 8 0 8-5 0-7-8-10-8z" />
                   </svg>
                 </i>
-                Meta DMs
+                <span>Meta DMs</span>
               </span>
-              <span className="chip">
+              <span className="chip chip-web">
                 <i>
                   <svg viewBox="0 0 24 24">
                     <path d="M3 5h18v14H3zM3 9h18" />
                   </svg>
                 </i>
-                AI website
+                <span>AI website</span>
               </span>
-              <span className="chip">
+              <span className="chip chip-pos">
                 <i>
                   <svg viewBox="0 0 24 24">
                     <path d="M4 7h16v10H4zM8 12h8M12 7V4M12 20v-3" />
                   </svg>
                 </i>
-                Your POS
+                <span>Your POS</span>
               </span>
             </div>
           </div>
@@ -2931,18 +3242,45 @@ export default function Home() {
           Channels
         </div>
         <div className="w">
+          <div
+            className="pill"
+            style={{
+              marginBottom: "16px",
+              borderColor: "rgba(37,99,235,.25)",
+              background: "rgba(37,99,235,.06)",
+              color: "#1d4ed8",
+              fontWeight: 600,
+            }}
+          >
+            <i
+              style={{
+                background: "linear-gradient(135deg, #2563eb, #38bdf8)",
+              }}
+            ></i>{" "}
+            Channels &amp; Ordering Suite
+          </div>
           <h2 className="h2">
-            Four AI products. One restaurant that never misses an order.
+            Four AI products. <br />
+            One restaurant that{" "}
+            <span className="gr-logo">never misses an order.</span>
           </h2>
           <p className="sub">
             Run one or run them all. Press play by scrolling: each demo below is
             a real flow, from the first hello to the order in your POS.
           </p>
           <div className="pj">
-            <a href="#p-voice">Voice agent</a>
-            <a href="#p-wa">WhatsApp</a>
-            <a href="#p-web">AI website</a>
-            <a href="#p-meta">Meta DMs</a>
+            <a href="#p-voice" className="pj-voice">
+              <i></i>Voice agent
+            </a>
+            <a href="#p-wa" className="pj-wa">
+              <i></i>WhatsApp
+            </a>
+            <a href="#p-web" className="pj-web">
+              <i></i>AI website
+            </a>
+            <a href="#p-meta" className="pj-meta">
+              <i></i>Meta DMs
+            </a>
           </div>
 
           <div className="pr" id="p-voice">
@@ -2952,7 +3290,7 @@ export default function Home() {
                   <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" />
                 </svg>
               </span>
-              <h3>AI voice agent</h3>
+              <h3 style={{ color: "#2563eb" }}>AI voice agent</h3>
               <p>
                 Answers on the first ring, takes the whole order in a natural
                 voice and never puts anyone on hold.
@@ -2988,7 +3326,7 @@ export default function Home() {
                   <ul id="vri"></ul>
                   <div className="vt">
                     <span>Total</span>
-                    <b id="vtv">£0.00</b>
+                    <b id="vtv">€0.00</b>
                   </div>
                   <div className="vs" id="vstp">
                     Order placed
@@ -3008,7 +3346,7 @@ export default function Home() {
                   <path d="M4 5h16v11H9l-5 4z" />
                 </svg>
               </span>
-              <h3>WhatsApp chatbot</h3>
+              <h3 style={{ color: "#16a34a" }}>WhatsApp chatbot</h3>
               <p>
                 Customers message you like a friend. The bot builds the basket,
                 sends the payment link and confirms the order.
@@ -3045,7 +3383,7 @@ export default function Home() {
                   <path d="M3 5h18v14H3zM3 9h18" />
                 </svg>
               </span>
-              <h3>AI ordering website</h3>
+              <h3 style={{ color: "#ea580c" }}>AI ordering website</h3>
               <p>
                 Your own branded ordering site with an AI assistant that fills
                 the basket for customers. No marketplace commission.
@@ -3071,22 +3409,22 @@ export default function Home() {
                   <div className="mn2">
                     <div className="mi">
                       <b>Pepperoni</b>
-                      <span>£13.00</span>
+                      <span>€13.00</span>
                       <em></em>
                     </div>
                     <div className="mi">
                       <b>Garlic bread</b>
-                      <span>£5.50</span>
+                      <span>€5.50</span>
                       <em></em>
                     </div>
                     <div className="mi">
                       <b>Cola</b>
-                      <span>£2.00</span>
+                      <span>€2.00</span>
                       <em></em>
                     </div>
                     <div className="mi">
                       <b>Margherita</b>
-                      <span>£11.00</span>
+                      <span>€11.00</span>
                       <em></em>
                     </div>
                   </div>
@@ -3095,7 +3433,7 @@ export default function Home() {
                     <ul id="cu"></ul>
                     <div className="ctt">
                       <span>Total</span>
-                      <b id="ctv">£0.00</b>
+                      <b id="ctv">€0.00</b>
                     </div>
                     <div className="co" id="co">
                       Checkout
@@ -3125,7 +3463,7 @@ export default function Home() {
                   <path d="M7 8c-3 0-4 8 0 8 3 0 5-8 10-8 4 0 4 8 0 8-5 0-7-8-10-8z" />
                 </svg>
               </span>
-              <h3>Meta chatbot</h3>
+              <h3 style={{ color: "#e11d48" }}>Meta chatbot</h3>
               <p>
                 Answers Instagram and Messenger DMs about hours, menu and
                 bookings in seconds, even at 2 am, and turns chats into orders.
@@ -3193,10 +3531,30 @@ export default function Home() {
             fontSize: "clamp(220px,42vw,640px)",
           }}
         >
-          £
+          €
         </div>
         <div className="w">
-          <h2 className="h2">What is a missed call really costing you?</h2>
+          <div
+            className="pill"
+            style={{
+              marginBottom: "16px",
+              borderColor: "rgba(37,99,235,.25)",
+              background: "rgba(37,99,235,.06)",
+              color: "#1d4ed8",
+              fontWeight: 600,
+            }}
+          >
+            <i
+              style={{
+                background: "linear-gradient(135deg, #2563eb, #38bdf8)",
+              }}
+            ></i>{" "}
+            Interactive Revenue Calculator
+          </div>
+          <h2 className="h2">
+            What is a missed call really{" "}
+            <span className="gr-logo">costing you?</span>
+          </h2>
           <p className="sub">
             Move the sliders. It&apos;s an estimate built from your own numbers,
             not a promise.
@@ -3214,7 +3572,7 @@ export default function Home() {
                 />
               </label>
               <label>
-                Average order value <b id="va">£28</b>
+                Average order value <b id="va">€28</b>
                 <input
                   type="range"
                   id="ca"
@@ -3242,7 +3600,7 @@ export default function Home() {
                   <b id="oo">0</b>orders a month
                 </div>
                 <div>
-                  <b id="yy">£0</b>a year
+                  <b id="yy">€0</b>a year
                 </div>
               </div>
               <a
@@ -3284,7 +3642,7 @@ export default function Home() {
                 <span>calls answered</span>
               </div>
               <div>
-                <b id="n2">£0</b>
+                <b id="n2">€0</b>
                 <span>in orders captured</span>
               </div>
               <div>
@@ -3298,6 +3656,23 @@ export default function Home() {
 
       <section id="why" style={{ paddingTop: "0" }}>
         <div className="w">
+          <div
+            className="pill"
+            style={{
+              marginBottom: "20px",
+              borderColor: "rgba(37,99,235,.25)",
+              background: "rgba(37,99,235,.06)",
+              color: "#1d4ed8",
+              fontWeight: 600,
+            }}
+          >
+            <i
+              style={{
+                background: "linear-gradient(135deg, #2563eb, #38bdf8)",
+              }}
+            ></i>{" "}
+            The CallAutomate Advantage
+          </div>
           <p className="rv" id="rv">
             Your busiest hour shouldn&apos;t be your biggest leak. CallAutomate
             answers every call, chat and DM at once, so no order walks out the
@@ -3351,7 +3726,27 @@ export default function Home() {
           Synced
         </div>
         <div className="w">
-          <h2 className="h2">Plugs straight into the POS you already use.</h2>
+          <div
+            className="pill"
+            style={{
+              marginBottom: "16px",
+              borderColor: "rgba(37,99,235,.25)",
+              background: "rgba(37,99,235,.06)",
+              color: "#1d4ed8",
+              fontWeight: 600,
+            }}
+          >
+            <i
+              style={{
+                background: "linear-gradient(135deg, #2563eb, #38bdf8)",
+              }}
+            ></i>{" "}
+            Point of Sale Integration
+          </div>
+          <h2 className="h2">
+            Plugs straight into the{" "}
+            <span className="gr-logo">POS you already use.</span>
+          </h2>
           <p className="sub">
             Choose your system and watch real-looking orders land on its screen,
             the moment a customer finishes talking.
@@ -3393,7 +3788,27 @@ export default function Home() {
           Your AI
         </div>
         <div className="w">
-          <h2 className="h2">Meet your agent. Name it in ten seconds.</h2>
+          <div
+            className="pill"
+            style={{
+              marginBottom: "16px",
+              borderColor: "rgba(37,99,235,.25)",
+              background: "rgba(37,99,235,.06)",
+              color: "#1d4ed8",
+              fontWeight: 600,
+            }}
+          >
+            <i
+              style={{
+                background: "linear-gradient(135deg, #2563eb, #38bdf8)",
+              }}
+            ></i>{" "}
+            Instant Agent Setup
+          </div>
+          <h2 className="h2">
+            Meet your agent.{" "}
+            <span className="gr-logo">Name it in ten seconds.</span>
+          </h2>
           <p className="sub">
             Type your restaurant, pick a cuisine and your POS, and watch your
             agent take shape.
@@ -3544,10 +3959,65 @@ export default function Home() {
                   </span>
                 </li>
               </ul>
-              <span className="kxm">
-                <a href="mailto:hello@callautomate.com">hello@callautomate.com</a>
-                <span>Demos run Monday to Friday, 9:00 am to 5:30 pm</span>
-              </span>
+              <div className="ci-card">
+                <h3>Contact Information</h3>
+                <div className="ci-list">
+                  <a href="mailto:support@callautomate.ai" className="ci-item">
+                    <div className="ci-icon ci-email">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                        <path d="M22 6l-10 7L2 6" />
+                      </svg>
+                    </div>
+                    <div className="ci-details">
+                      <span className="ci-label">EMAIL US</span>
+                      <span className="ci-val">support@callautomate.ai</span>
+                    </div>
+                  </a>
+
+                  <a href="tel:+35361555222" className="ci-item">
+                    <div className="ci-icon ci-call">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" />
+                      </svg>
+                    </div>
+                    <div className="ci-details">
+                      <span className="ci-label">CALL US</span>
+                      <span className="ci-val">+353-61-555-222</span>
+                    </div>
+                  </a>
+
+                  <a
+                    href="https://wa.me/35361555222"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ci-item"
+                  >
+                    <div className="ci-icon ci-wa">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M4 5h16v11H9l-5 4z" />
+                      </svg>
+                    </div>
+                    <div className="ci-details">
+                      <span className="ci-label">WHATSAPP US</span>
+                      <span className="ci-val ci-val-wa">+353-61-555-222</span>
+                    </div>
+                  </a>
+
+                  <div className="ci-item">
+                    <div className="ci-icon ci-clock">
+                      <svg viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 7v5l3 2" />
+                      </svg>
+                    </div>
+                    <div className="ci-details">
+                      <span className="ci-label">SUPPORT HOURS</span>
+                      <span className="ci-val">24/7 Voice Monitoring &amp; Support</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="kxf" id="kxf">
@@ -3691,10 +4161,9 @@ export default function Home() {
 
               <div className="kxo" id="kdone" hidden>
                 <div className="kxk">✓</div>
-                <h3>Request sent</h3>
+                <h3>Demo Request Received!</h3>
                 <p>
-                  Your email app should open with your request. If nothing
-                  opens, email hello@callautomate.com.
+                  We have received your demo request and our team has been notified at support@callautomate.ai. We will be in touch shortly to confirm your setup.
                 </p>
                 <div className="kxsu" id="ksu"></div>
                 <a
@@ -3747,8 +4216,20 @@ export default function Home() {
             </div>
             <div>
               <h4>Contact</h4>
-              <a href="mailto:hello@callautomate.com">hello@callautomate.com</a>
-              <a href="#contact">Book a demo</a>
+              <a href="mailto:support@callautomate.ai">support@callautomate.ai</a>
+              <a href="tel:+35361555222">+353-61-555-222</a>
+              <a
+                href="https://wa.me/35361555222"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#25d366" }}
+              >
+                WhatsApp: +353-61-555-222
+              </a>
+              <span className="fh">24/7 Voice Monitoring &amp; Support</span>
+              <a href="#contact" style={{ marginTop: "6px", display: "inline-block" }}>
+                Book a demo →
+              </a>
             </div>
           </div>
           <div className="fb">
