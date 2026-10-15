@@ -1,15 +1,19 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import * as THREE from "three";
+import VoiceOrbScreen from "@/components/VoiceOrbScreen";
 
 const LOGO_SRC = "/logo.png";
 
 export default function Home() {
+  const [isVoiceOrbOpen, setIsVoiceOrbOpen] = useState(false);
+
   useEffect(() => {
     // Ensure window.THREE is available
     if (typeof window !== "undefined") {
       (window as any).THREE = THREE;
+      (window as any).__openVoiceOrb = () => setIsVoiceOrbOpen(true);
     }
 
     // Set images to our logo
@@ -1029,6 +1033,10 @@ export default function Home() {
 
       if (b) {
         b.onclick = () => {
+          if ((window as any).__openVoiceOrb) {
+            (window as any).__openVoiceOrb();
+            return;
+          }
           if (on) {
             stop();
             return;
@@ -2383,16 +2391,7 @@ export default function Home() {
       const form = $("kf") as HTMLFormElement;
       if (!form) return;
 
-      const pn = [].slice.call(
-        form.querySelectorAll(".kp")
-      ) as HTMLElement[];
-      const ind = [].slice.call(
-        form.querySelectorAll(".kxs li")
-      ) as HTMLElement[];
-      const nb = $("kn");
-      const bb = $("kb");
-      let cur = 0;
-
+      const nb = $("kn") as HTMLButtonElement | null;
       const ds = $("ds");
       const ts = $("ts");
       const sm = $("psum");
@@ -2449,6 +2448,7 @@ export default function Home() {
       if (tzEl) tzEl.textContent = "(times in " + tz.replace("_", " ") + ")";
 
       function sl() {
+        if (!D[dk] || !SL[tk]) return "Flexible / To be confirmed";
         return (
           W[D[dk].getDay()] +
           " " +
@@ -2523,6 +2523,7 @@ export default function Home() {
           ) as HTMLButtonElement;
           if (!b || b.disabled) return;
           tk = +b.dataset.k!;
+          if (sm) sm.classList.remove("pe");
           paint();
         };
       }
@@ -2569,6 +2570,21 @@ export default function Home() {
         };
       }
 
+      ["k-n", "k-c", "k-o"].forEach((id) => {
+        const el = $(id);
+        if (el) {
+          el.oninput = () => {
+            const wrapId = id === "k-n" ? "w-n" : id === "k-c" ? "w-c" : "w-o";
+            const w = $(wrapId);
+            if (w) {
+              w.classList.remove("err");
+              const err = w.querySelector(".kxe");
+              if (err) err.textContent = "";
+            }
+          };
+        }
+      });
+
       function bad(id: string, m: string) {
         const w = $(id);
         if (w) {
@@ -2584,6 +2600,14 @@ export default function Home() {
           const e = w.querySelector(".kxe");
           if (e) e.textContent = "";
         });
+        if (sm) {
+          sm.className = "ps";
+          if (tk > -1) {
+            sm.textContent = "✓ " + sl();
+          } else {
+            sm.textContent = "Choose a date and time for your 20-minute demo.";
+          }
+        }
       }
 
       function picks() {
@@ -2593,89 +2617,77 @@ export default function Home() {
           .map((b: any) => b.textContent);
       }
 
-      function ok(n: number) {
+      function validateForm(): boolean {
         clr();
-        let g = 1;
+        let valid = true;
+        let firstErrEl: HTMLElement | null = null;
+
         const kn = $("k-n") as HTMLInputElement;
         const kcInput = $("k-c") as HTMLInputElement;
         const kpSelect = $("k-p") as HTMLSelectElement;
         const koInput = $("k-o") as HTMLInputElement;
 
-        if (n === 0) {
-          if (!kn?.value.trim()) {
-            bad("w-n", "Please tell us your name.");
-            g = 0;
-          }
-          const c = kcInput?.value.trim() || "";
-          if (!(/@/.test(c) || c.replace(/\D/g, "").length >= 7)) {
-            bad("w-c", "Enter a phone number or email we can reach you on.");
-            g = 0;
-          }
+        // 1. Name validation
+        if (!kn?.value.trim()) {
+          bad("w-n", "Please tell us your name.");
+          valid = false;
+          if (!firstErrEl) firstErrEl = kn;
         }
-        if (n === 1) {
-          if (!picks().length) {
-            bad("w-i", "Choose at least one option.");
-            g = 0;
-          }
-          if (!kpSelect?.value) {
-            bad("w-p", "Please select your POS system.");
-            g = 0;
-          }
-          if (
-            kpSelect?.value === "Other POS" &&
-            !koInput?.value.trim()
-          ) {
-            bad("w-o", "Tell us which POS you use.");
-            g = 0;
-          }
+
+        // 2. Contact validation (phone or email)
+        const c = kcInput?.value.trim() || "";
+        if (!(/@/.test(c) || c.replace(/\D/g, "").length >= 7)) {
+          bad("w-c", "Enter a phone number or email we can reach you on.");
+          valid = false;
+          if (!firstErrEl) firstErrEl = kcInput;
         }
-        if (n === 2 && tk < 0) {
+
+        // 3. Channels / Interest validation
+        if (!picks().length) {
+          bad("w-i", "Choose at least one option.");
+          valid = false;
+          if (!firstErrEl) firstErrEl = $("kc");
+        }
+
+        // 4. POS validation
+        if (!kpSelect?.value) {
+          bad("w-p", "Please select your POS system.");
+          valid = false;
+          if (!firstErrEl) firstErrEl = kpSelect;
+        } else if (kpSelect.value === "Other POS" && !koInput?.value.trim()) {
+          bad("w-o", "Tell us which POS you use.");
+          valid = false;
+          if (!firstErrEl) firstErrEl = koInput;
+        }
+
+        // 5. Time slot validation
+        if (tk < 0) {
           if (sm) {
             sm.className = "ps pe";
             sm.textContent = "Please pick a date and a time slot.";
           }
-          g = 0;
+          valid = false;
+          if (!firstErrEl) firstErrEl = $("ts") || $("ds");
         }
-        return g;
-      }
 
-      function show(n: number) {
-        cur = n;
-        pn.forEach((p, i) => {
-          p.hidden = i !== n;
-        });
-        ind.forEach((l, i) => {
-          l.className = i === n ? "kon" : i < n ? "kd" : "";
-          if (l.firstChild) l.firstChild.textContent = i < n ? "✓" : String(i + 1);
-        });
-        if (bb) bb.hidden = n === 0;
-        if (nb) nb.textContent = n === 2 ? "Request my demo" : "Continue";
-
-        const kxf = $("kxf");
-        if (kxf) {
-          const r = kxf.getBoundingClientRect();
-          if (r.top < 0) kxf.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (!valid && firstErrEl) {
+          firstErrEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          if (typeof (firstErrEl as any).focus === "function") {
+            (firstErrEl as any).focus();
+          }
         }
-      }
 
-      if (bb) {
-        bb.onclick = () => {
-          if (cur > 0) show(cur - 1);
-        };
+        return valid;
       }
 
       form.onsubmit = async (e) => {
         e.preventDefault();
-        if (!ok(cur)) return;
-        if (cur < 2) {
-          show(cur + 1);
-          return;
-        }
+        if (!validateForm()) return;
 
-        const kpVal = ( $("k-p") as HTMLSelectElement )?.value;
-        const koVal = ( $("k-o") as HTMLInputElement )?.value.trim();
+        const kpVal = ( $("k-p") as HTMLSelectElement )?.value || "";
+        const koVal = ( $("k-o") as HTMLInputElement )?.value.trim() || "";
         const pos = kpVal === "Other POS" ? "Other: " + koVal : kpVal;
-        const p = picks().join(", ");
+        const p = picks().join(", ") || "Voice agent";
         const n = ( $("k-n") as HTMLInputElement )?.value.trim() || "";
         const r = ( $("k-r") as HTMLInputElement )?.value.trim() || "";
         const c = ( $("k-c") as HTMLInputElement )?.value.trim() || "";
@@ -2684,7 +2696,7 @@ export default function Home() {
 
         if (nb) {
           nb.setAttribute("disabled", "true");
-          nb.textContent = "Sending demo request...";
+          nb.textContent = "Booking demo...";
         }
 
         try {
@@ -2707,37 +2719,39 @@ export default function Home() {
         } finally {
           if (nb) {
             nb.removeAttribute("disabled");
-            nb.textContent = "Request my demo";
+            nb.textContent = "Book Demo";
           }
         }
 
-        const stDate = new Date(D[dk]);
-        stDate.setHours(SL[tk][0], SL[tk][1], 0, 0);
-        const enDate = new Date(stDate.getTime() + 12e5);
-        const z = (t: Date) =>
-          t.getFullYear() +
-          ("0" + (t.getMonth() + 1)).slice(-2) +
-          ("0" + t.getDate()).slice(-2) +
-          "T" +
-          ("0" + t.getHours()).slice(-2) +
-          ("0" + t.getMinutes()).slice(-2) +
-          "00";
+        if (tk > -1 && D[dk] && SL[tk]) {
+          const stDate = new Date(D[dk]);
+          stDate.setHours(SL[tk][0], SL[tk][1], 0, 0);
+          const enDate = new Date(stDate.getTime() + 12e5);
+          const z = (t: Date) =>
+            t.getFullYear() +
+            ("0" + (t.getMonth() + 1)).slice(-2) +
+            ("0" + t.getDate()).slice(-2) +
+            "T" +
+            ("0" + t.getHours()).slice(-2) +
+            ("0" + t.getMinutes()).slice(-2) +
+            "00";
 
-        const kgc = $("kgc") as HTMLAnchorElement;
-        if (kgc) {
-          kgc.href =
-            "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" +
-            encodeURIComponent("CallAutomate demo") +
-            "&dates=" +
-            z(stDate) +
-            "/" +
-            z(enDate) +
-            "&ctz=" +
-            encodeURIComponent(tz) +
-            "&details=" +
-            encodeURIComponent(
-              "20-minute demo of CallAutomate for " + (r || n)
-            );
+          const kgc = $("kgc") as HTMLAnchorElement;
+          if (kgc) {
+            kgc.href =
+              "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" +
+              encodeURIComponent("CallAutomate demo") +
+              "&dates=" +
+              z(stDate) +
+              "/" +
+              z(enDate) +
+              "&ctz=" +
+              encodeURIComponent(tz) +
+              "&details=" +
+              encodeURIComponent(
+                "20-minute demo of CallAutomate for " + (r || n)
+              );
+          }
         }
 
         const ksu = $("ksu");
@@ -2775,8 +2789,8 @@ export default function Home() {
             sm.textContent = "Choose a date and time for your 20-minute demo.";
           }
           if (kc) {
-            [].forEach.call(kc.children, (b: any) => {
-              b.setAttribute("aria-pressed", "false");
+            [].forEach.call(kc.children, (b: any, idx: number) => {
+              b.setAttribute("aria-pressed", idx === 0 ? "true" : "false");
             });
           }
           const wo = $("w-o");
@@ -2784,10 +2798,9 @@ export default function Home() {
           const kdone = $("kdone");
           if (kdone) kdone.hidden = true;
           form.hidden = false;
-          show(0);
+          clr();
         };
       }
-      show(0);
     })();
 
     // Module 15: Reduced Motion Toggle
@@ -3137,7 +3150,12 @@ export default function Home() {
                 <a className="btn" href="#try">
                   Watch an order happen
                 </a>
-                <button className="btn mic" id="mic" type="button">
+                <button
+                  className="btn mic"
+                  id="mic"
+                  type="button"
+                  onClick={() => setIsVoiceOrbOpen(true)}
+                >
                   <svg viewBox="0 0 24 24">
                     <rect x="9" y="3" width="6" height="11" rx="3" />
                     <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
@@ -3913,13 +3931,9 @@ export default function Home() {
         <div className="w">
           <div className="kxg">
             <div className="kxl">
-              <div className="gt" aria-hidden="true" data-d="-1">
-                Let&apos;s talk
-              </div>
               <h2>Hear your menu taken by AI.</h2>
               <p>
-                Book a 20-minute demo and we&apos;ll build it around your
-                restaurant.
+                Book a 20-minute live demo and see CallAutomate handle orders on your actual menu.
               </p>
               <ul>
                 <li>
@@ -3943,7 +3957,7 @@ export default function Home() {
                   <span>
                     <b>Works with your POS</b>
                     <br />
-                    Toast, Clover, Square and more.
+                    Toast, Clover, Square, Lightspeed and more.
                   </span>
                 </li>
                 <li>
@@ -3953,9 +3967,21 @@ export default function Home() {
                     </svg>
                   </i>
                   <span>
-                    <b>No obligation</b>
+                    <b>Zero risk, no obligation</b>
                     <br />
-                    See it working before you decide.
+                    See it working on live calls before you decide.
+                  </span>
+                </li>
+                <li>
+                  <i>
+                    <svg viewBox="0 0 24 24">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                  </i>
+                  <span>
+                    <b>Live in under 48 hours</b>
+                    <br />
+                    Zero new hardware, keep your existing phone number.
                   </span>
                 </li>
               </ul>
@@ -4022,57 +4048,76 @@ export default function Home() {
 
             <div className="kxf" id="kxf">
               <form id="kf" noValidate>
-                <ol className="kxs">
-                  <li className="kon">
-                    <b>1</b>
-                    <span>About you</span>
-                  </li>
-                  <li>
-                    <b>2</b>
-                    <span>Your setup</span>
-                  </li>
-                  <li>
-                    <b>3</b>
-                    <span>Pick a time</span>
-                  </li>
-                </ol>
+                <div className="kxf-header">
+                  <h3>Book Your 20-Minute Demo</h3>
+                  <p>
+                    See CallAutomate live on your menu, custom-configured for your restaurant and POS.
+                  </p>
+                </div>
 
-                <div className="kp">
-                  <div className="kxr">
-                    <div className="kxi" id="w-n">
-                      <label htmlFor="k-n">Your name</label>
-                      <input
-                        id="k-n"
-                        autoComplete="name"
-                        placeholder="Sam Taylor"
-                      />
-                      <small className="kxe"></small>
-                    </div>
-                    <div className="kxi">
-                      <label htmlFor="k-r">Restaurant name</label>
-                      <input
-                        id="k-r"
-                        autoComplete="organization"
-                        placeholder="Tony's Pizzeria"
-                      />
-                    </div>
+                <div className="kxr">
+                  <div className="kxi" id="w-n">
+                    <label htmlFor="k-n">Your name</label>
+                    <input
+                      id="k-n"
+                      autoComplete="name"
+                      placeholder="Sam Taylor"
+                    />
+                    <small className="kxe"></small>
                   </div>
-                  <div className="kxi" id="w-c" style={{ marginTop: "16px" }}>
+                  <div className="kxi">
+                    <label htmlFor="k-r">Restaurant name</label>
+                    <input
+                      id="k-r"
+                      autoComplete="organization"
+                      placeholder="Tony's Pizzeria"
+                    />
+                  </div>
+                </div>
+
+                <div className="kxr" style={{ marginTop: "12px" }}>
+                  <div className="kxi" id="w-c">
                     <label htmlFor="k-c">Phone or email</label>
                     <input
                       id="k-c"
                       autoComplete="email"
-                      placeholder="So we can confirm your demo"
+                      placeholder="Phone or email"
                     />
+                    <small className="kxe"></small>
+                  </div>
+                  <div className="kxi" id="w-p">
+                    <label htmlFor="k-p">Your POS system</label>
+                    <select id="k-p">
+                      <option value="">Select your POS</option>
+                      <option>Toast</option>
+                      <option>Clover</option>
+                      <option>Square</option>
+                      <option>Lightspeed</option>
+                      <option>Revel</option>
+                      <option>Epos Now</option>
+                      <option>Other POS</option>
+                      <option>I don&apos;t use a POS yet</option>
+                    </select>
                     <small className="kxe"></small>
                   </div>
                 </div>
 
-                <div className="kp" hidden>
+                <div
+                  className="kxi"
+                  id="w-o"
+                  style={{ marginTop: "10px" }}
+                  hidden
+                >
+                  <label htmlFor="k-o">Which POS do you use?</label>
+                  <input id="k-o" placeholder="Name of your POS" />
+                  <small className="kxe"></small>
+                </div>
+
+                <div className="kxf-sec" style={{ marginTop: "14px", paddingTop: "12px" }}>
                   <div className="kxi" id="w-i">
                     <label>What are you interested in?</label>
                     <span className="kxc" id="kc">
-                      <button type="button" aria-pressed="false">
+                      <button type="button" aria-pressed="true">
                         Voice agent
                       </button>
                       <button type="button" aria-pressed="false">
@@ -4090,44 +4135,9 @@ export default function Home() {
                     </span>
                     <small className="kxe"></small>
                   </div>
-                  <div className="kxi" id="w-p" style={{ marginTop: "18px" }}>
-                    <label htmlFor="k-p">Your POS system</label>
-                    <select id="k-p">
-                      <option value="">Select your POS system</option>
-                      <option>Toast</option>
-                      <option>Clover</option>
-                      <option>Square</option>
-                      <option>Lightspeed</option>
-                      <option>Revel</option>
-                      <option>Epos Now</option>
-                      <option>Other POS</option>
-                      <option>I don&apos;t use a POS yet</option>
-                    </select>
-                    <small className="kxe"></small>
-                  </div>
-                  <div
-                    className="kxi"
-                    id="w-o"
-                    style={{ marginTop: "14px" }}
-                    hidden
-                  >
-                    <label htmlFor="k-o">Which POS do you use?</label>
-                    <input id="k-o" placeholder="Name of your POS" />
-                    <small className="kxe"></small>
-                  </div>
-                  <div className="kxi" style={{ marginTop: "18px" }}>
-                    <label htmlFor="k-m">
-                      Anything we should know? <small>(optional)</small>
-                    </label>
-                    <textarea
-                      id="k-m"
-                      rows={2}
-                      placeholder="Number of locations, current phone setup..."
-                    ></textarea>
-                  </div>
                 </div>
 
-                <div className="kp" hidden>
+                <div className="kxf-sec" style={{ marginTop: "14px", paddingTop: "12px" }}>
                   <h4 className="kxh">Pick a date</h4>
                   <span
                     className="ds"
@@ -4135,7 +4145,7 @@ export default function Home() {
                     role="group"
                     aria-label="Choose a date"
                   ></span>
-                  <h4 className="kxh" style={{ marginTop: "18px" }}>
+                  <h4 className="kxh" style={{ marginTop: "12px" }}>
                     Pick a time <small id="tz"></small>
                   </h4>
                   <span
@@ -4149,13 +4159,25 @@ export default function Home() {
                   </span>
                 </div>
 
-                <div className="kxn">
-                  <button className="kxb" id="kb" type="button" hidden>
-                    Back
+                <div className="kxi" style={{ marginTop: "12px" }}>
+                  <label htmlFor="k-m">
+                    Anything we should know? <small>(optional)</small>
+                  </label>
+                  <textarea
+                    id="k-m"
+                    rows={2}
+                    placeholder="Locations, current phone setup, special requests..."
+                  ></textarea>
+                </div>
+
+                <div className="kxn" style={{ marginTop: "18px" }}>
+                  <button className="btn p" id="kn" type="submit" style={{ width: "100%", justifyContent: "center" }}>
+                    Book Demo
                   </button>
-                  <button className="btn p" id="kn" type="submit">
-                    Continue
-                  </button>
+                </div>
+
+                <div className="kxf-trust">
+                  🔒 No obligation &bull; 20-min tailored demo &bull; Direct POS integration
                 </div>
               </form>
 
@@ -4244,6 +4266,11 @@ export default function Home() {
           CallAutomate
         </div>
       </footer>
+
+      <VoiceOrbScreen
+        isOpen={isVoiceOrbOpen}
+        onClose={() => setIsVoiceOrbOpen(false)}
+      />
     </>
   );
 }
