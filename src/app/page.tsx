@@ -241,8 +241,21 @@ export default function Home() {
           c.stroke();
         }
 
+        let isHeroInView = true;
+        if (typeof window !== "undefined" && "IntersectionObserver" in window && hero) {
+          new IntersectionObserver((entries) => {
+            isHeroInView = entries[0].isIntersecting;
+          }, { threshold: 0.05 }).observe(hero);
+        }
+
         function fr() {
           if (!c) return;
+          if (!R) requestAnimationFrame(fr);
+
+          // Avoid burning CPU when offscreen or while modal call intro is active
+          const introActive = !document.body.classList.contains("go") && document.getElementById("in")?.style.display !== "none";
+          if (!isHeroInView || introActive) return;
+
           c.clearRect(0, 0, W, H);
           for (let i = 0; i < P.length; i++) {
             const p = P[i];
@@ -264,7 +277,6 @@ export default function Home() {
             const m = Math.hypot(p.x - M.x, p.y - M.y);
             if (m < 200) ln(p.x, p.y, M.x, M.y, 59, 108, 0.8 * (1 - m / 200));
           }
-          if (!R) requestAnimationFrame(fr);
         }
 
         if (hero) {
@@ -530,6 +542,7 @@ export default function Home() {
             canvas: cs,
             alpha: true,
             antialias: true,
+            preserveDrawingBuffer: true,
           });
         } catch {
           return {
@@ -557,7 +570,7 @@ export default function Home() {
       const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 10);
       cam.position.z = 4.4;
 
-      let TA = new THREE.Color(0.043, 0.055, 0.102);
+      let TA = new THREE.Color(0.043, 0.08, 0.22);
       let TB = new THREE.Color(0.18, 0.45, 0.93);
       const U = {
         t: { value: 0 },
@@ -578,10 +591,10 @@ export default function Home() {
         N +
         "void main(){float d=no(position*1.5+t*.35)*.55+no(position*3.2-t*.6)*.22;vd=d;vec3 q=position*(1.+(d-.4)*(.7+u*1.6));vec4 mv=modelViewMatrix*vec4(q,1.);vn=normalMatrix*normal;vv=-mv.xyz;gl_Position=projectionMatrix*mv;}";
       const F =
-        "uniform float t;uniform vec3 A,B;varying float vd;varying vec3 vn,vv;void main(){float fr=pow(1.-abs(dot(normalize(vn),normalize(vv))),2.2);vec3 c=mix(A,B,smoothstep(.2,.8,vd));c=mix(c,vec3(1.,.55,.88),smoothstep(.55,1.,sin(vd*8.+t*.8)*.5+.5)*.55);c=mix(c,vec3(.78,.9,1.),fr*.75);gl_FragColor=vec4(mix(c,vec3(1.),.14),1.);}";
+        "uniform float t;uniform vec3 A,B;varying float vd;varying vec3 vn,vv;void main(){float fr=pow(1.-abs(dot(normalize(vn),normalize(vv))),2.2);vec3 c=mix(A,B,smoothstep(.2,.8,vd));c=mix(c,vec3(0.35,.75,1.),smoothstep(.55,1.,sin(vd*8.+t*.8)*.5+.5)*.55);c=mix(c,vec3(.78,.9,1.),fr*.75);gl_FragColor=vec4(mix(c,vec3(1.),.14),1.);}";
 
       const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 120, 120),
+        new THREE.SphereGeometry(1, 56, 56),
         new THREE.ShaderMaterial({
           uniforms: U,
           vertexShader: V,
@@ -629,7 +642,24 @@ export default function Home() {
       let fc = 0;
       if (window.ResizeObserver) new ResizeObserver(rz).observe(box);
 
+      let isOrbInView = true;
+      if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+        new IntersectionObserver((entries) => {
+          isOrbInView = entries[0].isIntersecting;
+        }, { threshold: 0.05 }).observe(box);
+      }
+
+      // Initial single render so the orb is immediately ready
+      r.render(sc, cam);
+
       function lp(ts: number) {
+        if (!R) requestAnimationFrame(lp);
+
+        // Pause loop only when user has scrolled far down past the hero section
+        if (window.scrollY > 900) {
+          return;
+        }
+
         const t = R ? 2 : ts / 1000;
         U.t.value = t;
         sm +=
@@ -650,23 +680,6 @@ export default function Home() {
         mesh.rotation.x = my * 0.5;
         r.render(sc, cam);
 
-        if (++fc === 3 || fc === 90) {
-          const g = r.getContext();
-          const px = new Uint8Array(4);
-          if (g && g.readPixels) {
-            g.readPixels(
-              Math.floor(cs.width / 2),
-              Math.floor(cs.height / 2),
-              1,
-              1,
-              g.RGBA,
-              g.UNSIGNED_BYTE,
-              px
-            );
-            box.classList.toggle("gl", !!px[3]);
-          }
-        }
-
         const n = chArr.length;
         chArr.forEach((e, i) => {
           const a = t * 0.45 + (i * 6.2832) / n;
@@ -684,8 +697,6 @@ export default function Home() {
           e.style.zIndex = z > 0 ? "4" : "3";
           e.style.opacity = "1";
         });
-
-        if (!R) requestAnimationFrame(lp);
       }
       requestAnimationFrame(lp);
     })();
@@ -796,10 +807,12 @@ export default function Home() {
         return "rgb(" + a.map((v) => Math.round(v * 255)).join(",") + ")";
       }
 
+      let hasUserPicked = false;
       function pick(id: string, fn: (val: string) => void) {
         const bs = document.querySelectorAll("#" + id + " button");
         bs.forEach((b) => {
           (b as HTMLElement).onclick = () => {
+            hasUserPicked = true;
             bs.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
             fn(b.textContent || "");
             up();
@@ -845,7 +858,7 @@ export default function Home() {
         const syEl = document.getElementById("sy");
         if (syEl) syEl.textContent = "✓ Menu and prices synced with " + ps;
 
-        if ((window as any).orbTo) (window as any).orbTo(d.c[0], d.c[1]);
+        if (hasUserPicked && (window as any).orbTo) (window as any).orbTo(d.c[0], d.c[1]);
         clearInterval(ty);
         gr.textContent = R ? g : "";
         if (!R) {
@@ -2137,6 +2150,7 @@ export default function Home() {
       if ((window as any).sfx) (window as any).sfx.ringNow();
       let spk = 0;
       (function l() {
+        if (done) return;
         if (spk)
           (window as any).mic =
             0.14 +
