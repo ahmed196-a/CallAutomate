@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   icons: {
-    icon: "/logo.png",
+    icon: "/logo-removebg-preview.png",
   },
 };
 

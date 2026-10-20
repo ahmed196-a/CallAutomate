@@ -49,13 +49,16 @@ export async function POST(req: Request) {
       }
     });
 
-    const logoPath = path.join(process.cwd(), 'public', 'logo.png');
+    const logoFile = fs.existsSync(path.join(process.cwd(), 'public', 'logo-removebg-preview.png'))
+      ? 'logo-removebg-preview.png'
+      : 'logo.png';
+    const logoPath = path.join(process.cwd(), 'public', logoFile);
     const attachments = [];
     let logoHtml = `<div style="font-size:26px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">CallAutomate<span style="color:#38bdf8;">.ai</span></div>`;
 
     if (fs.existsSync(logoPath)) {
       attachments.push({
-        filename: 'logo.png',
+        filename: logoFile,
         path: logoPath,
         cid: 'callautomate-logo'
       });

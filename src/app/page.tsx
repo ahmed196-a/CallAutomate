@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import * as THREE from "three";
 import VoiceOrbScreen from "@/components/VoiceOrbScreen";
 
-const LOGO_SRC = "/logo.png";
+const LOGO_SRC = "/logo-removebg-preview.png";
 
 export default function Home() {
   const [isVoiceOrbOpen, setIsVoiceOrbOpen] = useState(false);
@@ -1003,7 +1003,7 @@ export default function Home() {
       let on = 0;
       let ctx: any;
       let st: any;
-      const lb = b?.querySelector("span");
+      const lb = b?.querySelector(".bto-text") || b?.querySelector("span");
 
       function stop() {
         on = 0;
@@ -3144,23 +3144,27 @@ export default function Home() {
                 website, wired into Toast, Clover and Square.
               </p>
               <div className="cta">
-                <a className="btn p" href="#contact">
-                  Book a free demo
-                </a>
-                <a className="btn" href="#try">
-                  Watch an order happen
-                </a>
                 <button
-                  className="btn mic"
+                  className="btn-talk-orb mic"
                   id="mic"
                   type="button"
                   onClick={() => setIsVoiceOrbOpen(true)}
+                  aria-label="Talk to the AI Orb"
                 >
-                  <svg viewBox="0 0 24 24">
-                    <rect x="9" y="3" width="6" height="11" rx="3" />
-                    <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-                  </svg>
-                  <span>Talk to the orb</span>
+                  <i className="bto-icon-wrap" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <rect x="9" y="3" width="6" height="11" rx="3" />
+                      <path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" />
+                    </svg>
+                    <span className="bto-pulse" />
+                  </i>
+                  <span className="bto-text">Talk to the orb</span>
+                  <span className="bto-wave" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </span>
                 </button>
               </div>
             </div>

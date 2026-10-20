@@ -11,21 +11,96 @@ interface VoiceOrbScreenProps {
 interface Message {
   sender: "agent" | "user";
   text: string;
+  time?: string;
 }
 
-const DEFAULT_CHIPS = [
-  "Book a demo meeting",
-  "Calculate my ROI",
-  "Which POS do you support?",
-  "Tell me about WhatsApp",
-  "How does the voice agent work?",
-  "AI Ordering Website",
-  "Meta & Instagram Chatbot",
-  "Do I need a new phone number?",
-  "Talk to a human",
+interface ChipAction {
+  label: string;
+  icon: "calendar" | "chart" | "headphones" | "list" | "bot" | "instagram" | "phone" | "user";
+}
+
+const CHIP_ACTIONS: ChipAction[] = [
+  { label: "Book a demo meeting", icon: "calendar" },
+  { label: "Calculate my ROI", icon: "chart" },
+  { label: "Which POS do you support?", icon: "headphones" },
+  { label: "How does the voice agent work?", icon: "list" },
+  { label: "AI Ordering Website", icon: "bot" },
+  { label: "Meta & Instagram Chatbot", icon: "instagram" },
+  { label: "Do I need a new phone number?", icon: "phone" },
+  { label: "Talk to a human", icon: "user" },
 ];
 
-const LOGO_SRC = "/logo.png";
+function renderChipIcon(type: ChipAction["icon"]) {
+  switch (type) {
+    case "calendar":
+      return (
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      );
+    case "chart":
+      return (
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+          <polyline points="17 6 23 6 23 12" />
+        </svg>
+      );
+    case "headphones":
+      return (
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+          <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+        </svg>
+      );
+    case "list":
+      return (
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6" />
+          <line x1="8" y1="12" x2="21" y2="12" />
+          <line x1="8" y1="18" x2="21" y2="18" />
+          <line x1="3" y1="6" x2="3.01" y2="6" />
+          <line x1="3" y1="12" x2="3.01" y2="12" />
+          <line x1="3" y1="18" x2="3.01" y2="18" />
+        </svg>
+      );
+    case "bot":
+      return (
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="11" width="18" height="10" rx="2" />
+          <circle cx="12" cy="5" r="2" />
+          <path d="M12 7v4" />
+          <line x1="8" y1="16" x2="8.01" y2="16" />
+          <line x1="16" y1="16" x2="16.01" y2="16" />
+        </svg>
+      );
+    case "instagram":
+      return (
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+        </svg>
+      );
+    case "phone":
+      return (
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+        </svg>
+      );
+    case "user":
+      return (
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      );
+  }
+}
+
+const LOGO_SRC = "/logo-removebg-preview.png";
 
 export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps) {
   const [viewMode, setViewMode] = useState<"fullscreen" | "docked">("fullscreen");
@@ -92,7 +167,11 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     setTimeout(() => {
       const el = document.getElementById(id);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: id.startsWith("p-") ? "center" : "start" });
+        el.scrollIntoView({
+          behavior: "smooth",
+          block: id.startsWith("p-") ? "center" : "start",
+          inline: "nearest",
+        });
         el.classList.add("spot");
         setTimeout(() => el.classList.remove("spot"), 3400);
       }
@@ -188,7 +267,8 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
 
   // Add message to chat log
   const addMessage = useCallback((sender: "agent" | "user", text: string) => {
-    setMessages((prev) => [...prev, { sender, text }]);
+    const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    setMessages((prev) => [...prev, { sender, text, time }]);
     setTimeout(() => {
       if (chatLogRef.current) {
         chatLogRef.current.scrollTop = chatLogRef.current.scrollHeight;
@@ -997,16 +1077,9 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
   useEffect(() => {
     if (!isOpen) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
     const SZ = 320;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = SZ * dpr;
-    canvas.height = SZ * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    let cachedCanvas: HTMLCanvasElement | null = null;
+    let cachedCtx: CanvasRenderingContext2D | null = null;
 
     const PALETTE = {
       speaking: ["#e6fbff", "#7be0ff", "#2e8fed", "#16318a"],
@@ -1041,46 +1114,65 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
         orbWrapRef.current.style.setProperty("--lvl", lvl.toFixed(3));
       }
 
-      // Draw Main Orb
-      ctx.clearRect(0, 0, SZ, SZ);
-      const amp = 0.038 + lvl * 0.22;
-      const R = 104 * (1 + lvl * 0.12);
-      const pts = 72;
-      const c = SZ / 2;
-
-      ctx.beginPath();
-      for (let i = 0; i <= pts; i++) {
-        const a = (i / pts) * Math.PI * 2;
-        const n =
-          Math.sin(a * 3 + t * 1.4) * 0.5 +
-          Math.sin(a * 5 - t * 1.9) * 0.3 +
-          Math.sin(a * 2 + t * 0.9) * 0.45;
-        const r = R * (1 + amp * n);
-        const x = c + Math.cos(a) * r;
-        const y = c + Math.sin(a) * r;
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      // Check canvas element dynamically across fullscreen and docked toggles
+      const canvas = canvasRef.current;
+      if (canvas !== cachedCanvas) {
+        cachedCanvas = canvas;
+        if (canvas) {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          canvas.width = SZ * dpr;
+          canvas.height = SZ * dpr;
+          cachedCtx = canvas.getContext("2d");
+          if (cachedCtx) {
+            cachedCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          }
+        } else {
+          cachedCtx = null;
+        }
       }
-      ctx.closePath();
 
-      const pal = speakingRef.current ? PALETTE.speaking : PALETTE.listening;
-      const grad = ctx.createRadialGradient(c - 34, c - 44, 8, c, c, R * 1.22);
-      grad.addColorStop(0, pal[0]);
-      grad.addColorStop(0.35, pal[1]);
-      grad.addColorStop(0.75, pal[2]);
-      grad.addColorStop(1, pal[3]);
+      const ctx = cachedCtx;
+      if (ctx) {
+        ctx.clearRect(0, 0, SZ, SZ);
+        const amp = 0.038 + lvl * 0.22;
+        const R = 104 * (1 + lvl * 0.12);
+        const pts = 72;
+        const c = SZ / 2;
 
-      ctx.shadowColor = "rgba(46, 115, 237, 0.75)";
-      ctx.shadowBlur = 40 + lvl * 55;
-      ctx.fillStyle = grad;
-      ctx.fill();
-      ctx.shadowBlur = 0;
+        ctx.beginPath();
+        for (let i = 0; i <= pts; i++) {
+          const a = (i / pts) * Math.PI * 2;
+          const n =
+            Math.sin(a * 3 + t * 1.4) * 0.5 +
+            Math.sin(a * 5 - t * 1.9) * 0.3 +
+            Math.sin(a * 2 + t * 0.9) * 0.45;
+          const r = R * (1 + amp * n);
+          const x = c + Math.cos(a) * r;
+          const y = c + Math.sin(a) * r;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.closePath();
 
-      // Specular Highlight
-      const hl = ctx.createRadialGradient(c - 36, c - 46, 2, c - 36, c - 46, 75);
-      hl.addColorStop(0, "rgba(255, 255, 255, 0.58)");
-      hl.addColorStop(1, "rgba(255, 255, 255, 0)");
-      ctx.fillStyle = hl;
-      ctx.fill();
+        const pal = speakingRef.current ? PALETTE.speaking : PALETTE.listening;
+        const grad = ctx.createRadialGradient(c - 34, c - 44, 8, c, c, R * 1.22);
+        grad.addColorStop(0, pal[0]);
+        grad.addColorStop(0.35, pal[1]);
+        grad.addColorStop(0.75, pal[2]);
+        grad.addColorStop(1, pal[3]);
+
+        ctx.shadowColor = "rgba(46, 115, 237, 0.75)";
+        ctx.shadowBlur = 40 + lvl * 55;
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Specular Highlight
+        const hl = ctx.createRadialGradient(c - 36, c - 46, 2, c - 36, c - 46, 75);
+        hl.addColorStop(0, "rgba(255, 255, 255, 0.58)");
+        hl.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.fillStyle = hl;
+        ctx.fill();
+      }
 
       // Animate Waveform Bars in Fullscreen Stage
       if (waveBarsRef.current) {
@@ -1158,158 +1250,231 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
       {/* 1. FULL-SCREEN INTERACTIVE VOICE EXPERIENCE */}
       {viewMode === "fullscreen" && (
         <div className="vo-fullscreen">
-          {/* Top Floating Pill Navbar (Matches website navbar perfectly) */}
-          <div className="vo-nav-wrapper">
-            <nav className="vo-navbar">
+          {/* 1. Top Navbar Header */}
+          <header className="vo-screen-header">
+            <div className="vo-header-left">
               <div className="vo-brand">
                 <img src={LOGO_SRC} alt="CallAutomate" className="vo-brand-img" />
                 <span>CallAutomate</span>
               </div>
-
+              <div className="vo-header-divider" />
               <span className="vo-session-pill">
-                <i /> Live AI Voice Session
+                <i /> {userName && userName.trim() ? `Live Session · ${userName.trim()}` : "Live AI Voice Session"}
               </span>
+            </div>
 
-              <div className="vo-nav-actions">
+            <div className="vo-header-right">
+              <button
+                className="vo-nav-btn view"
+                title="View website while staying on call"
+                onClick={() => setViewMode("docked")}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>View Website</span>
+              </button>
+
+              <button className="vo-nav-btn end" title="End call" onClick={onClose}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                  <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 4 .65 2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A19.93 19.93 0 0 1 3 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2 12.84 12.84 0 0 0 .65 4 2 2 0 0 1-.45 2.11L8.93 9.4" />
+                  <line x1="23" y1="1" x2="1" y2="23" />
+                </svg>
+                <span>End Call</span>
+              </button>
+            </div>
+          </header>
+
+          {/* 2. Main Body Grid: Left = Orb + Controls, Right = Live Conversation Card */}
+          <main className="vo-screen-body">
+            {/* Left Area: Orb, Status Readout, and Control Bar */}
+            <div className="vo-orb-column">
+              <div ref={orbWrapRef} className="vo-orb-wrapper">
+                <div className="vo-orbital-ring">
+                  <span className="vo-orbit-dot dot-1" />
+                  <span className="vo-orbit-dot dot-2" />
+                  <span className="vo-orbit-dot dot-3" />
+                </div>
+                <div className="vo-orb-glow" />
+                <canvas ref={canvasRef} className="vo-orb-canvas" width={320} height={320} />
+                <div className="vo-orb-center-wave" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
+
+              <div className="vo-status-block">
+                <h2 className="vo-status-title">
+                  {callStatus === "speaking" ? "Speaking..." : callStatus === "muted" ? "Muted" : "Listening..."}
+                </h2>
+                <p className="vo-status-sub">
+                  {statusText && statusText !== "Listening..." && statusText !== "Microphone muted"
+                    ? statusText
+                    : "Your AI agent is ready to help"}
+                </p>
+              </div>
+
+              {/* Call Controls Bar */}
+              <div className="vo-callbar">
                 <button
-                  className="vo-nav-btn view"
-                  title="View website while staying on call"
-                  onClick={() => setViewMode("docked")}
+                  className={`vo-round-btn ${isMuted ? "muted" : ""}`}
+                  title={isMuted ? "Unmute microphone" : "Mute microphone"}
+                  onClick={toggleMute}
+                  aria-label={isMuted ? "Unmute" : "Mute"}
                 >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    {isMuted ? (
+                      <>
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                        <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+                        <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+                        <line x1="12" y1="19" x2="12" y2="23" />
+                        <line x1="8" y1="23" x2="16" y2="23" />
+                      </>
+                    ) : (
+                      <>
+                        <rect x="9" y="3" width="6" height="12" rx="3" />
+                        <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+                      </>
+                    )}
                   </svg>
-                  <span>View Website</span>
                 </button>
 
-                <button className="vo-nav-btn end" title="End call" onClick={onClose}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <div ref={waveBarsRef} className="vo-wave" aria-label="Audio wave">
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+
+                <button className="vo-round-btn end" title="End call" onClick={onClose} aria-label="End call">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
-                  <span>End Call</span>
                 </button>
               </div>
-            </nav>
-          </div>
-
-          {/* Center Stage Content */}
-          <main className="vo-stage">
-            <div className="vo-pill">
-              <i />
-              <span>Meet CallAutomate: the AI that picks up for you</span>
             </div>
 
-            <h1 className="vo-title">
-              {userName && userName.trim() ? (
-                <>
-                  Welcome, <span className="vo-gradient-heading">{userName.trim()}</span>
-                </>
-              ) : (
-                <>
-                  Every call answered.
-                  <span className="vo-gradient-heading">Every order in your POS.</span>
-                </>
-              )}
-            </h1>
+            {/* Right Area: Embedded Live Conversation Box */}
+            <div className="vo-chat-column">
+              <div className="vo-chat-card">
+                <div className="vo-chat-card-header">
+                  <div className="vo-chat-title">
+                    <span className="vo-live-dot" />
+                    <span>Live conversation</span>
+                  </div>
+                  <span className="vo-agent-badge">AI Agent</span>
+                </div>
 
-            <p className="vo-subtitle">
-              Voice agents, WhatsApp and Meta chatbots, and a full AI ordering website, wired into Toast, Clover and Square.
-            </p>
+                <div ref={chatLogRef} className="vo-chat-messages">
+                  {messages.map((m, i) => (
+                    <div key={i} className={`vo-chat-row ${m.sender}`}>
+                      {m.sender === "agent" && (
+                        <div className="vo-avatar agent">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="11" width="18" height="10" rx="2" />
+                            <circle cx="12" cy="5" r="2" />
+                            <path d="M12 7v4" />
+                            <line x1="8" y1="16" x2="8.01" y2="16" />
+                            <line x1="16" y1="16" x2="16.01" y2="16" />
+                          </svg>
+                        </div>
+                      )}
 
-            {/* Glowing 320px Canvas Orb */}
-            <div ref={orbWrapRef} className="vo-orb-wrapper">
-              <div className="vo-orb-glow" />
-              <canvas ref={canvasRef} className="vo-orb-canvas" width={320} height={320} />
-            </div>
+                      <div className="vo-bubble-wrap">
+                        <div className={`vo-bubble ${m.sender}`}>
+                          {m.text}
+                        </div>
+                        <span className="vo-bubble-time">{m.time || "2:14 PM"}</span>
+                      </div>
 
-            {/* Call Control Bar */}
-            <div className="vo-callbar">
-              <button
-                className={`vo-round-btn ${isMuted ? "muted" : ""}`}
-                title={isMuted ? "Unmute microphone" : "Mute microphone"}
-                onClick={toggleMute}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  {isMuted ? (
-                    <>
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                      <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
-                      <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
-                      <line x1="12" y1="19" x2="12" y2="23" />
-                      <line x1="8" y1="23" x2="16" y2="23" />
-                    </>
-                  ) : (
-                    <>
-                      <rect x="9" y="3" width="6" height="12" rx="3" />
-                      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-                    </>
+                      {m.sender === "user" && (
+                        <div className="vo-avatar user">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Typing Indicator */}
+                  {callStatus === "speaking" && (
+                    <div className="vo-chat-row agent typing">
+                      <div className="vo-avatar agent">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="10" rx="2" />
+                          <circle cx="12" cy="5" r="2" />
+                          <path d="M12 7v4" />
+                          <line x1="8" y1="16" x2="8.01" y2="16" />
+                          <line x1="16" y1="16" x2="16.01" y2="16" />
+                        </svg>
+                      </div>
+                      <div className="vo-bubble-wrap">
+                        <div className="vo-bubble agent typing-dots">
+                          <span />
+                          <span />
+                          <span />
+                        </div>
+                        <span className="vo-bubble-time">Speaking</span>
+                      </div>
+                    </div>
                   )}
-                </svg>
-              </button>
+                </div>
 
-              <div ref={waveBarsRef} className="vo-wave">
-                <span />
-                <span />
-                <span />
-                <span />
-                <span />
+                <form className="vo-chat-card-input" onSubmit={handleChatSubmit}>
+                  <input
+                    type="text"
+                    placeholder="Or type a question here..."
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                  />
+                  <button type="submit" aria-label="Send message">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13" />
+                      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                    </svg>
+                  </button>
+                </form>
               </div>
-
-              <button className="vo-round-btn end" title="End call" onClick={onClose}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Live Status Pill */}
-            <div className={`vo-status-pill ${callStatus}`}>
-              <span>{statusText}</span>
-            </div>
-
-            {/* Suggestion Prompt Chips */}
-            <div className="vo-chips">
-              {DEFAULT_CHIPS.map((chip, idx) => (
-                <button key={idx} className="vo-chip" onClick={() => handleUserInput(chip)}>
-                  {chip}
-                </button>
-              ))}
             </div>
           </main>
 
-          {/* Corner Live Conversation Panel */}
-          <aside className={`vo-chat-panel ${isChatMinimized ? "minimized" : ""}`}>
-            <div className="vo-chat-header" onClick={() => setIsChatMinimized(!isChatMinimized)}>
-              <span>Live conversation</span>
-              <small style={{ color: "#9aa4c4", fontFamily: "inherit" }}>{isChatMinimized ? "show" : "hide"}</small>
-            </div>
-
-            <div className="vo-chat-body">
-              <div ref={chatLogRef} className="vo-chat-log">
-                {messages.map((m, i) => (
-                  <div key={i} className={`vo-msg ${m.sender}`}>
-                    {m.text}
-                  </div>
-                ))}
+          {/* 3. Bottom Row: Quick Actions / Chips Row */}
+          <footer className="vo-screen-footer">
+            <div className="vo-quick-header">
+              <div className="vo-quick-title">
+                <svg className="vo-sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z" />
+                </svg>
+                <span>Quick actions</span>
               </div>
-
-              <form className="vo-chat-form" onSubmit={handleChatSubmit}>
-                <input
-                  type="text"
-                  className="vo-chat-input"
-                  placeholder="Or type here..."
-                  value={textInput}
-                  onChange={(e) => setTextInput(e.target.value)}
-                />
-                <button type="submit" className="vo-chat-send">
-                  Send
-                </button>
-              </form>
+              <span className="vo-quick-sub">Try these or ask your own question</span>
             </div>
-          </aside>
+
+            <div className="vo-chips-row">
+              {CHIP_ACTIONS.map((item, idx) => (
+                <button
+                  key={idx}
+                  className="vo-action-chip"
+                  onClick={() => handleUserInput(item.label)}
+                >
+                  <span className="vo-chip-icon">{renderChipIcon(item.icon)}</span>
+                  <span className="vo-chip-label">{item.label}</span>
+                  <svg className="vo-chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          </footer>
         </div>
       )}
 
