@@ -2431,7 +2431,8 @@ export default function Home() {
         Intl.DateTimeFormat().resolvedOptions().timeZone || "your local time";
       const SL: [number, number][] = [];
 
-      for (let h = 9; h < 18; h++) {
+      // Half-hourly slots from 2:00 pm to 7:30 pm (demo window)
+      for (let h = 14; h < 20; h++) {
         SL.push([h, 0]);
         SL.push([h, 30]);
       }
@@ -2713,8 +2714,9 @@ export default function Home() {
           nb.textContent = "Booking demo...";
         }
 
+        let isSuccess = false;
         try {
-          await fetch("/api/contact", {
+          const res = await fetch("/api/contact", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -2728,13 +2730,26 @@ export default function Home() {
               notes: m,
             }),
           });
+          isSuccess = res.ok;
+          if (!res.ok) {
+            console.error("Error sending demo request via SMTP, status:", res.status);
+          }
         } catch (err) {
           console.error("Error sending demo request via SMTP:", err);
+          isSuccess = false;
         } finally {
           if (nb) {
             nb.removeAttribute("disabled");
             nb.textContent = "Book Demo";
           }
+        }
+
+        if (!isSuccess) {
+          if (sm) {
+            sm.className = "ps pe";
+            sm.textContent = "Could not send demo request. Please check your connection or try again.";
+          }
+          return;
         }
 
         if (tk > -1 && D[dk] && SL[tk]) {
