@@ -4249,7 +4249,7 @@ export default function Home() {
           <div className="fg2">
             <div>
               <div className="brand">
-                <img className="fl" alt="" src={LOGO_SRC} />
+                <img className="fl" alt="CallAutomate" width={36} height={36} src={LOGO_SRC} />
                 CallAutomate
               </div>
               <p>

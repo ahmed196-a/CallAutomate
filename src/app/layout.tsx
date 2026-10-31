@@ -20,7 +20,15 @@ export const metadata: Metadata = {
     type: "website",
   },
   icons: {
-    icon: "/logo-removebg-preview.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png", sizes: "192x192" },
+      { url: "/logo.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: ["/favicon.ico"],
   },
 };
 
