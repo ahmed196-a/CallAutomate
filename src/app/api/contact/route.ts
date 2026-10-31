@@ -2,25 +2,67 @@ import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import path from 'path';
 import fs from 'fs';
+import {
+  getClientIp,
+  checkRateLimit,
+  verifyTurnstileToken,
+  sanitizeText,
+  isValidContact,
+} from '@/lib/security';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const {
-      name = '',
-      restaurant = '',
-      contact = '',
-      interestedIn = '',
-      pos = '',
-      slot = '',
-      tz = '',
-      notes = ''
-    } = body;
+    const ip = getClientIp(req);
+
+    // Rate limiting: max 5 demo requests per minute per IP
+    const rateCheck = await checkRateLimit(`contact:${ip}`, 5, 60 * 1000);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests. Please wait a minute and try again.' },
+        { status: 429 }
+      );
+    }
+
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+
+    // Honeypot check for bots
+    if (body._hp || body.website) {
+      return NextResponse.json({
+        success: true,
+        message: 'Demo request email successfully sent.',
+      });
+    }
+
+    // Optional Cloudflare Turnstile token validation
+    const turnstileCheck = await verifyTurnstileToken(body.turnstileToken, ip);
+    if (!turnstileCheck.success) {
+      return NextResponse.json(
+        { success: false, error: turnstileCheck.error || 'CAPTCHA validation failed.' },
+        { status: 400 }
+      );
+    }
+
+    // Sanitize and cap field lengths
+    const name = sanitizeText(body.name, 100);
+    const restaurant = sanitizeText(body.restaurant, 100);
+    const contact = sanitizeText(body.contact, 120);
+    const interestedIn = sanitizeText(body.interestedIn, 200);
+    const pos = sanitizeText(body.pos, 100);
+    const slot = sanitizeText(body.slot, 100);
+    const tz = sanitizeText(body.tz, 50);
+    const notes = sanitizeText(body.notes, 1000);
 
     // Validate minimum requirements
     if (!name && !contact && !restaurant) {
       return NextResponse.json(
         { success: false, error: 'Please provide at least a name, restaurant, or contact method.' },
+        { status: 400 }
+      );
+    }
+
+    if (contact && !isValidContact(contact)) {
+      return NextResponse.json(
+        { success: false, error: 'Please provide a valid phone number or email address.' },
         { status: 400 }
       );
     }
@@ -39,14 +81,12 @@ export async function POST(req: Request) {
       );
     }
 
+    // Create transport with standard strict TLS verification
     const transporter = nodemailer.createTransport({
       host,
       port,
       secure: port === 465,
       auth: { user, pass },
-      tls: {
-        rejectUnauthorized: false
-      }
     });
 
     const logoFile = fs.existsSync(path.join(process.cwd(), 'public', 'logo-removebg-preview.png'))
@@ -289,17 +329,16 @@ export async function POST(req: Request) {
       attachments: attachments
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    await transporter.sendMail(mailOptions);
 
     return NextResponse.json({
       success: true,
-      messageId: info.messageId,
       message: 'Demo request email successfully sent.'
     });
-  } catch (error: any) {
-    console.error('Contact API error:', error);
+  } catch (error: unknown) {
+    console.error('Contact API error:', error instanceof Error ? error.message : 'Unknown error');
     return NextResponse.json(
-      { success: false, error: error.message || 'Internal server error while sending email.' },
+      { success: false, error: 'We could not process your request right now. Please try again later.' },
       { status: 500 }
     );
   }

@@ -36,10 +36,7 @@ async function testEmail() {
     host,
     port,
     secure: port === 465, // true for 465, false for 587
-    auth: { user, pass },
-    tls: {
-      rejectUnauthorized: false
-    }
+    auth: { user, pass }
   });
 
   // Verify connection configuration
