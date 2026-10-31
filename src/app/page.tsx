@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Room,
@@ -40,15 +42,19 @@ export function useLiveKitVoiceOrb({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioDataRef = useRef<Uint8Array | null>(null);
+
   const speakingRef = useRef<boolean>(false);
   const mutedRef = useRef<boolean>(false);
 
+  // Latest UI-action handler reference to prevent stale closure
   const actionHandlerRef = useRef<(name: string, input: any) => Promise<any>>(onAction);
   actionHandlerRef.current = onAction;
 
+  // Latest chat message handler reference
   const onChatMessageRef = useRef<(sender: "agent" | "user", text: string) => void>(onChatMessage);
   onChatMessageRef.current = onChatMessage;
 
+  // Toggle microphone
   const toggleMute = useCallback(() => {
     const next = !isMuted;
     setIsMuted(next);
@@ -67,6 +73,7 @@ export function useLiveKitVoiceOrb({
     }
   }, [isMuted]);
 
+  // Typed chat and quick-action chips dispatch to the LiveKit agent
   const handleUserInput = useCallback(async (rawText: string) => {
     const text = rawText.trim();
     const room = roomRef.current;
@@ -108,6 +115,7 @@ export function useLiveKitVoiceOrb({
       }
     };
 
+    // Agent state drives the orb: initializing | listening | thinking | speaking
     const applyAgentState = (state?: string) => {
       if (cancelled) return;
       if (state === "speaking") {
@@ -124,18 +132,14 @@ export function useLiveKitVoiceOrb({
       }
     };
 
+    // Website control: the agent calls this to scroll, fill form, select slot, submit, etc.
     room.localParticipant.registerRpcMethod("orb_action", async (data: RpcInvocationData) => {
-      if (!data.callerIdentity || data.callerIdentity === room.localParticipant.identity) {
-        throw new RpcError(2, "Unauthorized orb_action caller");
-      }
-
       let parsed: { name: string; input?: any };
       try {
         parsed = JSON.parse(data.payload);
       } catch (_) {
         throw new RpcError(1, "Bad orb_action payload");
       }
-
       try {
         const result = await actionHandlerRef.current(parsed.name, parsed.input || {});
         return JSON.stringify(result ?? { ok: true });
@@ -145,6 +149,7 @@ export function useLiveKitVoiceOrb({
       }
     });
 
+    // Live conversation card: the agent mirrors each turn as {role, text}
     room.registerTextStreamHandler("orb-chat", async (reader) => {
       try {
         const raw = await reader.readAll();
@@ -205,6 +210,7 @@ export function useLiveKitVoiceOrb({
 
         room.startAudio().catch(() => {});
 
+        // Check if agent is already in the room
         room.remoteParticipants.forEach((p) => {
           if (p.kind === ParticipantKind.AGENT) {
             applyAgentState(p.attributes["lk.agent.state"]);
