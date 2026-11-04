@@ -467,6 +467,7 @@
 .vo-chat-messages {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 16px 20px;
   display: flex;
   flex-direction: column;
@@ -680,6 +681,7 @@
   display: flex;
   gap: 10px;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   padding-bottom: 4px;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -933,6 +935,7 @@
 @media (max-width: 860px) {
   .vo-fullscreen {
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
   .vo-screen-header {
     padding: 12px 18px;
