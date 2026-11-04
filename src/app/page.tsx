@@ -927,17 +927,32 @@ export default function Home() {
           y = 0,
           tx = 0,
           ty = 0;
+        let curRafId: number | null = null;
+
+        function l() {
+          curRafId = null;
+          const dx = tx - x;
+          const dy = ty - y;
+          if (Math.hypot(dx, dy) < 0.1) {
+            x = tx;
+            y = ty;
+            if (cr) cr.style.transform = "translate(" + x + "px," + y + "px)";
+            return;
+          }
+          x += dx * 0.15;
+          y += dy * 0.15;
+          if (cr) cr.style.transform = "translate(" + x + "px," + y + "px)";
+          curRafId = requestAnimationFrame(l);
+        }
+
         window.addEventListener("mousemove", (e) => {
           tx = e.clientX;
           ty = e.clientY;
           if (cd) cd.style.transform = "translate(" + tx + "px," + ty + "px)";
+          if (curRafId === null) {
+            curRafId = requestAnimationFrame(l);
+          }
         });
-        (function l() {
-          x += (tx - x) * 0.15;
-          y += (ty - y) * 0.15;
-          if (cr) cr.style.transform = "translate(" + x + "px," + y + "px)";
-          requestAnimationFrame(l);
-        })();
         document.addEventListener("mouseover", (e) => {
           if (cr) {
             cr.classList.toggle(
