@@ -298,7 +298,8 @@ export default function Home() {
           }
         }
 
-        if (hero) {
+        const finePointer = !HM && window.matchMedia("(pointer:fine)").matches;
+        if (hero && finePointer && window.innerWidth > 860) {
           let heroRect: DOMRect | null = null;
           let cvRect: DOMRect | null = null;
           let tiltRafId: number | null = null;
