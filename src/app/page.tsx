@@ -382,14 +382,50 @@ export default function Home() {
         };
       }
 
-      document.querySelectorAll(".c").forEach((e) => {
-        const el = e as HTMLElement;
-        el.onmousemove = (v) => {
-          const r = el.getBoundingClientRect();
-          el.style.setProperty("--x", v.clientX - r.left + "px");
-          el.style.setProperty("--y", v.clientY - r.top + "px");
-        };
-      });
+      if (!HM && window.matchMedia("(pointer:fine)").matches) {
+        document.querySelectorAll(".c").forEach((e) => {
+          const el = e as HTMLElement;
+          let rect: DOMRect | null = null;
+          let rafId: number | null = null;
+          let latestX = 0;
+          let latestY = 0;
+
+          const flush = () => {
+            rafId = null;
+            if (!rect) return;
+            const px = latestX - rect.left;
+            const py = latestY - rect.top;
+            el.style.setProperty("--x", px + "px");
+            el.style.setProperty("--y", py + "px");
+            const rotX = (py / rect.height - 0.5) * -6;
+            const rotY = (px / rect.width - 0.5) * 6;
+            el.style.transform =
+              "perspective(900px) rotateX(" + rotX + "deg) rotateY(" + rotY + "deg)";
+          };
+
+          el.addEventListener("mouseenter", () => {
+            rect = el.getBoundingClientRect();
+          });
+
+          el.addEventListener("mousemove", (v) => {
+            if (!rect) rect = el.getBoundingClientRect();
+            latestX = v.clientX;
+            latestY = v.clientY;
+            if (rafId === null) {
+              rafId = requestAnimationFrame(flush);
+            }
+          });
+
+          el.addEventListener("mouseleave", () => {
+            rect = null;
+            if (rafId !== null) {
+              cancelAnimationFrame(rafId);
+              rafId = null;
+            }
+            el.style.transform = "";
+          });
+        });
+      }
 
       const rv = document.getElementById("rv");
       if (rv) {
@@ -1106,23 +1142,7 @@ export default function Home() {
       });
       calc();
 
-      if (!HM && window.matchMedia("(pointer:fine)").matches) {
-        document.querySelectorAll(".c").forEach((e) => {
-          const el = e as HTMLElement;
-          el.addEventListener("mousemove", (v) => {
-            const r = el.getBoundingClientRect();
-            el.style.transform =
-              "perspective(900px) rotateX(" +
-              ((v.clientY - r.top) / r.height - 0.5) * -6 +
-              "deg) rotateY(" +
-              ((v.clientX - r.left) / r.width - 0.5) * 6 +
-              "deg)";
-          });
-          el.addEventListener("mouseleave", () => {
-            el.style.transform = "";
-          });
-        });
-      }
+      // Bento card hover & tilt merged into Module 2 above
     })();
 
     // Module 6: Scroll Progress & Range background filling
