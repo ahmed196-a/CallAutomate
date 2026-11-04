@@ -419,6 +419,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     const SZ = 320;
     let cachedCanvas: HTMLCanvasElement | null = null;
     let cachedCtx: CanvasRenderingContext2D | null = null;
+    let cachedHl: CanvasGradient | null = null;
 
     const PALETTE = {
       speaking: ["#e6fbff", "#7be0ff", "#2e8fed", "#16318a"],
@@ -464,9 +465,14 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
           cachedCtx = canvas.getContext("2d");
           if (cachedCtx) {
             cachedCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            const c = SZ / 2;
+            cachedHl = cachedCtx.createRadialGradient(c - 36, c - 46, 2, c - 36, c - 46, 75);
+            cachedHl.addColorStop(0, "rgba(255, 255, 255, 0.58)");
+            cachedHl.addColorStop(1, "rgba(255, 255, 255, 0)");
           }
         } else {
           cachedCtx = null;
+          cachedHl = null;
         }
       }
 
@@ -505,12 +511,11 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Specular highlight
-        const hl = ctx.createRadialGradient(c - 36, c - 46, 2, c - 36, c - 46, 75);
-        hl.addColorStop(0, "rgba(255, 255, 255, 0.58)");
-        hl.addColorStop(1, "rgba(255, 255, 255, 0)");
-        ctx.fillStyle = hl;
-        ctx.fill();
+        // Specular highlight (using cached gradient)
+        if (cachedHl) {
+          ctx.fillStyle = cachedHl;
+          ctx.fill();
+        }
       }
 
       // Fullscreen waveform bars

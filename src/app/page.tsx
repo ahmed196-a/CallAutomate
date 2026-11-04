@@ -679,9 +679,12 @@ export default function Home() {
       let isOrbInView = true;
       let orbObserver: IntersectionObserver | null = null;
       let lpRafId: number | null = null;
+      let lastTs: number | null = null;
+      let simTime = 0;
 
       function startLpIfNeeded() {
         if (isOrbInView && !document.hidden && !R && !lpRafId) {
+          lastTs = null;
           lpRafId = requestAnimationFrame(lp);
         }
       }
@@ -692,6 +695,7 @@ export default function Home() {
           cancelAnimationFrame(lpRafId);
           lpRafId = null;
         }
+        lastTs = null;
       }
 
       const heroSection =
@@ -726,11 +730,18 @@ export default function Home() {
       function lp(ts: number) {
         if (!isOrbInView || document.hidden || R) {
           lpRafId = null;
+          lastTs = null;
           return;
         }
         lpRafId = requestAnimationFrame(lp);
 
-        const t = R ? 2 : ts / 1000;
+        if (lastTs !== null) {
+          const dt = Math.min((ts - lastTs) / 1000, 0.1);
+          simTime += dt;
+        }
+        lastTs = ts;
+
+        const t = R ? 2 : simTime;
         U.t.value = t;
         sm +=
           (((window as any).mic ||
