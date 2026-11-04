@@ -1286,7 +1286,19 @@ export default function Home() {
     (() => {
       function gp(sy: number, geom: GeometryCache) {
         geom.gtParents.forEach((item) => {
-          const c = item.top - sy + item.height / 2 - geom.vpHeight / 2;
+          let rTop = item.top - sy;
+          if (item.isSticky && geom.story) {
+            const storyStart = geom.story.top;
+            const storyEnd = geom.story.top + geom.story.height - geom.vpHeight;
+            if (sy < storyStart) {
+              rTop = storyStart - sy;
+            } else if (sy > storyEnd) {
+              rTop = storyEnd - sy;
+            } else {
+              rTop = 0;
+            }
+          }
+          const c = rTop + item.height / 2 - geom.vpHeight / 2;
           item.el.style.setProperty(
             "--ty",
             Math.max(-90, Math.min(90, c * -0.12)) + "px"

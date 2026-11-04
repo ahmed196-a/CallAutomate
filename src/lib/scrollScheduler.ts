@@ -13,7 +13,7 @@ export interface GeometryCache {
   rv: { top: number; height: number } | null;
   story: { top: number; height: number } | null;
   big: { top: number; height: number } | null;
-  gtParents: Array<{ el: HTMLElement; top: number; height: number; d: number }>;
+  gtParents: Array<{ el: HTMLElement; top: number; height: number; d: number; isSticky?: boolean }>;
   sections: Array<{ name: string; top: number }>;
 }
 
@@ -129,13 +129,14 @@ class ScrollScheduler {
 
     // 4. .gt parents (Typography parallax)
     const gtEls = document.querySelectorAll(".gt") as NodeListOf<HTMLElement>;
-    const gtParents: Array<{ el: HTMLElement; top: number; height: number; d: number }> = [];
+    const gtParents: Array<{ el: HTMLElement; top: number; height: number; d: number; isSticky?: boolean }> = [];
     gtEls.forEach((g) => {
       const p = g.parentElement;
       if (p) {
         const r = p.getBoundingClientRect();
         const d = Number(g.dataset.d) || 1;
-        gtParents.push({ el: g, top: r.top + sy, height: r.height, d });
+        const isSticky = p.classList.contains("stk");
+        gtParents.push({ el: g, top: r.top + sy, height: r.height, d, isSticky });
       }
     });
 
