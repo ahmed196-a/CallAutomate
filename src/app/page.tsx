@@ -3825,7 +3825,7 @@ export default function Home() {
 
       <div className="big" aria-hidden="true">
         <div id="r1">
-          <div className="big-track mq">
+          <div className="big-track">
             <span>Every call.</span>
             <span className="o">Every chat.</span>
             <span>Every order.</span>
@@ -3837,7 +3837,7 @@ export default function Home() {
           </div>
         </div>
         <div id="r2">
-          <div className="big-track mq">
+          <div className="big-track">
             <span className="o">Never missed.</span>
             <span>Never late.</span>
             <span className="o">Never busy.</span>
