@@ -448,9 +448,17 @@ export default function Home() {
         if (!dv || idx < 0 || idx >= S.length) return;
         cur = idx;
         dv.innerHTML = S[idx];
-        dv.classList.remove("pop");
-        void dv.offsetWidth;
-        dv.classList.add("pop");
+        const anims = typeof dv.getAnimations === "function" ? dv.getAnimations() : [];
+        if (anims && anims.length > 0) {
+          anims.forEach((a) => {
+            a.currentTime = 0;
+            a.play();
+          });
+        } else {
+          dv.classList.remove("pop");
+          void dv.offsetWidth;
+          dv.classList.add("pop");
+        }
       }
 
       function selectStep(targetIdx: number) {
@@ -517,12 +525,13 @@ export default function Home() {
       window.addEventListener("wheel", resetClickLock, { passive: true });
       window.addEventListener("touchstart", resetClickLock, { passive: true });
 
-      function f() {
-        if (!st || !dv) return;
-        const r = st.getBoundingClientRect();
+      function f(sy: number, geom: GeometryCache) {
+        if (!st || !dv || !geom.story) return;
+        const totalScrollable = geom.story.height - geom.vpHeight;
+        const newRTop = geom.story.top - sy;
         const p = Math.max(
           0,
-          Math.min(0.999, -r.top / (r.height - window.innerHeight))
+          Math.min(0.999, -newRTop / totalScrollable)
         );
         const k = Math.floor(p * 4);
 
@@ -536,7 +545,10 @@ export default function Home() {
         if (!isClickScrolling) {
           for (let i = 0; i < 4; i++) {
             if (li[i]) {
-              li[i].className = i === k ? "on" : "";
+              const targetCls = i === k ? "on" : "";
+              if (li[i].className !== targetCls) {
+                li[i].className = targetCls;
+              }
               if (i === k) {
                 (li[i] as HTMLElement).style.setProperty(
                   "--p",
@@ -552,7 +564,10 @@ export default function Home() {
         } else {
           for (let i = 0; i < 4; i++) {
             if (li[i]) {
-              li[i].className = i === clickTarget ? "on" : "";
+              const targetCls = i === clickTarget ? "on" : "";
+              if (li[i].className !== targetCls) {
+                li[i].className = targetCls;
+              }
               if (i === clickTarget) {
                 (li[i] as HTMLElement).style.setProperty(
                   "--p",
@@ -563,8 +578,7 @@ export default function Home() {
           }
         }
       }
-      window.addEventListener("scroll", f, { passive: true });
-      f();
+      scrollScheduler.subscribe("f", f);
 
       const box = document.querySelector(".orb") as HTMLElement;
       const cs = document.getElementById("oc") as HTMLCanvasElement;
@@ -3019,6 +3033,7 @@ export default function Home() {
 
     return () => {
       scrollScheduler.unsubscribe("sc");
+      scrollScheduler.unsubscribe("f");
       if ((window as any).__orbCleanup) {
         (window as any).__orbCleanup();
       }
