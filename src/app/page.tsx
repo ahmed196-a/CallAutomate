@@ -2913,8 +2913,8 @@ export default function Home() {
 
       const animTargets = [
         document.querySelector(".big"),
-        document.querySelector(".wv"),
-        document.querySelector(".pill i"),
+        document.querySelector(".con"),
+        document.querySelector(".pill"),
         document.querySelector("h1 span"),
         document.getElementById("lines"),
       ];
