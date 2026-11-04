@@ -825,10 +825,13 @@
 .vo-docked-wave span {
   display: block;
   width: 4px;
-  height: 8px;
+  height: 24px;
+  transform: scaleY(0.25);
+  transform-origin: center;
   border-radius: 999px;
   background: #38bdf8;
-  transition: height 0.1s ease;
+  transition: transform 0.1s ease;
+  will-change: transform;
 }
 
 .vo-docked-controls {

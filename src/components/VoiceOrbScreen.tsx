@@ -529,14 +529,31 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
         bars.forEach((b, i) => {
           const idle = speakingRef.current ? 0.35 + 0.35 * Math.abs(Math.sin(t * 5 + i * 1.3)) : 0.12;
           const v = Math.min(1, Math.max(idle, lvl * 1.4));
-          (b as HTMLElement).style.height = `${6 + v * 18}px`;
+          const scale = 0.25 + v * 0.75;
+          (b as HTMLElement).style.transform = `scaleY(${scale.toFixed(3)})`;
         });
       }
 
+      if (document.hidden) {
+        animFrameRef.current = null;
+        return;
+      }
       animFrameRef.current = requestAnimationFrame(render);
     };
 
     animFrameRef.current = requestAnimationFrame(render);
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (animFrameRef.current) {
+          cancelAnimationFrame(animFrameRef.current);
+          animFrameRef.current = null;
+        }
+      } else if (!animFrameRef.current) {
+        animFrameRef.current = requestAnimationFrame(render);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     const handlePointerMove = (e: PointerEvent) => {
       if (orbWrapRef.current) {
@@ -553,6 +570,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       window.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [isOpen, analyserRef, audioDataRef, mutedRef, speakingRef]);
 

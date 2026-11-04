@@ -572,7 +572,6 @@ export default function Home() {
             canvas: cs,
             alpha: true,
             antialias: true,
-            preserveDrawingBuffer: true,
           });
         } catch {
           return {
@@ -623,26 +622,26 @@ export default function Home() {
       const F =
         "uniform float t;uniform vec3 A,B;varying float vd;varying vec3 vn,vv;void main(){float fr=pow(1.-abs(dot(normalize(vn),normalize(vv))),2.2);vec3 c=mix(A,B,smoothstep(.2,.8,vd));c=mix(c,vec3(0.35,.75,1.),smoothstep(.55,1.,sin(vd*8.+t*.8)*.5+.5)*.55);c=mix(c,vec3(.78,.9,1.),fr*.75);gl_FragColor=vec4(mix(c,vec3(1.),.14),1.);}";
 
-      const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 56, 56),
-        new THREE.ShaderMaterial({
-          uniforms: U,
-          vertexShader: V,
-          fragmentShader: F,
-        })
-      );
+      const geom = new THREE.SphereGeometry(1, 56, 56);
+      const mat = new THREE.ShaderMaterial({
+        uniforms: U,
+        vertexShader: V,
+        fragmentShader: F,
+      });
+      const mesh = new THREE.Mesh(geom, mat);
       sc.add(mesh);
 
       let sy = 0;
-      window.addEventListener(
-        "scroll",
-        () => {
-          sy = window.scrollY;
-        },
-        { passive: true }
-      );
+      const onScroll = () => {
+        sy = window.scrollY;
+      };
+      window.addEventListener("scroll", onScroll, { passive: true });
 
       const chArr = [].slice.call(box.querySelectorAll(".chip")) as HTMLElement[];
+      const chPrevZ = new Array(chArr.length).fill("");
+      chArr.forEach((e) => {
+        e.style.opacity = "1";
+      });
       let mx = 0,
         my = 0,
         sm = 0.1;
@@ -664,31 +663,68 @@ export default function Home() {
       }
       rz();
       window.addEventListener("resize", rz);
-      window.addEventListener("mousemove", (e) => {
+      const onMouseMove = (e: MouseEvent) => {
         mx = e.clientX / window.innerWidth - 0.5;
         my = e.clientY / window.innerHeight - 0.5;
-      });
+      };
+      window.addEventListener("mousemove", onMouseMove);
 
-      let fc = 0;
-      if (window.ResizeObserver) new ResizeObserver(rz).observe(box);
+      let boxRo: ResizeObserver | null = null;
+      if (window.ResizeObserver) {
+        boxRo = new ResizeObserver(rz);
+        boxRo.observe(box);
+      }
 
       let isOrbInView = true;
-      if (typeof window !== "undefined" && "IntersectionObserver" in window) {
-        new IntersectionObserver((entries) => {
-          isOrbInView = entries[0].isIntersecting;
-        }, { threshold: 0.05 }).observe(box);
+      let orbObserver: IntersectionObserver | null = null;
+      let lpRafId: number | null = null;
+
+      function startLpIfNeeded() {
+        if (isOrbInView && !document.hidden && !R && !lpRafId) {
+          lpRafId = requestAnimationFrame(lp);
+        }
       }
+
+      function stopLp() {
+        if (lpRafId) {
+          cancelAnimationFrame(lpRafId);
+          lpRafId = null;
+        }
+      }
+
+      if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+        orbObserver = new IntersectionObserver(
+          (entries) => {
+            isOrbInView = entries[0].isIntersecting;
+            if (isOrbInView) {
+              startLpIfNeeded();
+            } else {
+              stopLp();
+            }
+          },
+          { threshold: 0.02, rootMargin: "100px" }
+        );
+        orbObserver.observe(box);
+      }
+
+      const handleVisChange = () => {
+        if (document.hidden) {
+          stopLp();
+        } else {
+          startLpIfNeeded();
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisChange);
 
       // Initial single render so the orb is immediately ready
       r.render(sc, cam);
 
       function lp(ts: number) {
-        if (!R) requestAnimationFrame(lp);
-
-        // Pause loop only when user has scrolled far down past the hero section
-        if (window.scrollY > 900) {
+        if (!isOrbInView || document.hidden || R) {
+          lpRafId = null;
           return;
         }
+        lpRafId = requestAnimationFrame(lp);
 
         const t = R ? 2 : ts / 1000;
         U.t.value = t;
@@ -711,7 +747,8 @@ export default function Home() {
         r.render(sc, cam);
 
         const n = chArr.length;
-        chArr.forEach((e, i) => {
+        for (let i = 0; i < n; i++) {
+          const e = chArr[i];
           const a = t * 0.45 + (i * 6.2832) / n;
           const x = Math.cos(a) * rx;
           const z = Math.sin(a);
@@ -724,11 +761,38 @@ export default function Home() {
             "px) scale(" +
             (0.94 + 0.1 * ((z + 1) / 2)) +
             ")";
-          e.style.zIndex = z > 0 ? "4" : "3";
           e.style.opacity = "1";
-        });
+          const targetZ = z > 0 ? "4" : "3";
+          if (chPrevZ[i] !== targetZ) {
+            chPrevZ[i] = targetZ;
+            e.style.zIndex = targetZ;
+          }
+        }
       }
-      requestAnimationFrame(lp);
+      startLpIfNeeded();
+
+      (window as any).__orbCleanup = () => {
+        stopLp();
+        window.removeEventListener("resize", rz);
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("scroll", onScroll);
+        document.removeEventListener("visibilitychange", handleVisChange);
+        if (orbObserver) orbObserver.disconnect();
+        if (boxRo) boxRo.disconnect();
+        if (mesh) {
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach((m: any) => m.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+          sc.remove(mesh);
+        }
+        if (r && typeof r.dispose === "function") {
+          r.dispose();
+          r.forceContextLoss?.();
+        }
+      };
     })();
 
     // Module 4: Custom cursor & Marquee & Agent Preview Customizer
@@ -2924,6 +2988,9 @@ export default function Home() {
     }
 
     return () => {
+      if ((window as any).__orbCleanup) {
+        (window as any).__orbCleanup();
+      }
       if (offscreenAnimObserver) {
         offscreenAnimObserver.disconnect();
       }
