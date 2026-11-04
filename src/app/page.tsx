@@ -631,9 +631,10 @@ export default function Home() {
       const mesh = new THREE.Mesh(geom, mat);
       sc.add(mesh);
 
-      let sy = 0;
+      let sy = typeof window !== "undefined" ? window.scrollY : 0;
       const onScroll = () => {
         sy = window.scrollY;
+        if (isOrbInView) startLpIfNeeded();
       };
       window.addEventListener("scroll", onScroll, { passive: true });
 
@@ -684,6 +685,7 @@ export default function Home() {
           lpRafId = requestAnimationFrame(lp);
         }
       }
+      (window as any).startHeroOrb = startLpIfNeeded;
 
       function stopLp() {
         if (lpRafId) {
@@ -692,6 +694,8 @@ export default function Home() {
         }
       }
 
+      const heroSection =
+        (document.querySelector(".hero") as HTMLElement) || box;
       if (typeof window !== "undefined" && "IntersectionObserver" in window) {
         orbObserver = new IntersectionObserver(
           (entries) => {
@@ -704,7 +708,7 @@ export default function Home() {
           },
           { threshold: 0.02, rootMargin: "100px" }
         );
-        orbObserver.observe(box);
+        orbObserver.observe(heroSection);
       }
 
       const handleVisChange = () => {
@@ -790,7 +794,6 @@ export default function Home() {
         }
         if (r && typeof r.dispose === "function") {
           r.dispose();
-          r.forceContextLoss?.();
         }
       };
     })();
@@ -2207,11 +2210,19 @@ export default function Home() {
       function go() {
         document.body.classList.add("go");
         document.documentElement.style.overflow = "";
+        if (typeof (window as any).startHeroOrb === "function") {
+          (window as any).startHeroOrb();
+        }
       }
 
       try {
         seen = sessionStorage.getItem("ca1");
       } catch {}
+
+      if (!seen && typeof window !== "undefined" && "scrollRestoration" in history) {
+        history.scrollRestoration = "manual";
+        window.scrollTo(0, 0);
+      }
 
       const rpl = $("rpl");
       if (rpl) {
@@ -2220,6 +2231,10 @@ export default function Home() {
           try {
             sessionStorage.removeItem("ca1");
           } catch {}
+          if (typeof window !== "undefined" && "scrollRestoration" in history) {
+            history.scrollRestoration = "manual";
+          }
+          window.scrollTo(0, 0);
           location.reload();
         };
       }
