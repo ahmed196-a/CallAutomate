@@ -315,13 +315,6 @@ export default function Home() {
               "perspective(1400px) rotateX(" + rotX + "deg) rotateY(" + rotY + "deg)";
           };
 
-          const updateRects = () => {
-            if (isHovered && hero) {
-              heroRect = hero.getBoundingClientRect();
-              if (cv) cvRect = cv.getBoundingClientRect();
-            }
-          };
-
           hero.addEventListener("mouseenter", () => {
             if (!HM && window.matchMedia("(pointer:fine)").matches && window.innerWidth > 860) {
               isHovered = true;
@@ -368,8 +361,17 @@ export default function Home() {
             }
           });
 
-          window.addEventListener("scroll", updateRects, { passive: true });
-          window.addEventListener("resize", updateRects, { passive: true });
+          const updateHeroOnScroll = () => {
+            if (isHovered && hero) {
+              heroRect = hero.getBoundingClientRect();
+              if (cv) cvRect = cv.getBoundingClientRect();
+              if (con && tiltRafId === null) {
+                tiltRafId = requestAnimationFrame(updateTilt);
+              }
+            }
+          };
+          scrollScheduler.subscribe("console-tilt", updateHeroOnScroll);
+          window.addEventListener("resize", updateHeroOnScroll, { passive: true });
         }
         window.addEventListener("resize", rs);
         rs();
@@ -379,48 +381,70 @@ export default function Home() {
         (window as any).__cvCleanup = () => {
           if (frRafId) cancelAnimationFrame(frRafId);
           if (heroObserver) heroObserver.disconnect();
+          scrollScheduler.unsubscribe("console-tilt");
         };
       }
 
       if (!HM && window.matchMedia("(pointer:fine)").matches) {
+        let activeBentoCard: HTMLElement | null = null;
+        let activeBentoRect: DOMRect | null = null;
+        let bentoRafId: number | null = null;
+        let bentoLatestX = 0;
+        let bentoLatestY = 0;
+
+        const flushBento = () => {
+          bentoRafId = null;
+          if (!activeBentoCard || !activeBentoRect) return;
+          const px = bentoLatestX - activeBentoRect.left;
+          const py = bentoLatestY - activeBentoRect.top;
+          activeBentoCard.style.setProperty("--x", px + "px");
+          activeBentoCard.style.setProperty("--y", py + "px");
+          const rotX = (py / activeBentoRect.height - 0.5) * -6;
+          const rotY = (px / activeBentoRect.width - 0.5) * 6;
+          activeBentoCard.style.transform =
+            "perspective(900px) rotateX(" + rotX + "deg) rotateY(" + rotY + "deg)";
+        };
+
+        const updateBentoRect = () => {
+          if (activeBentoCard) {
+            activeBentoRect = activeBentoCard.getBoundingClientRect();
+            if (bentoRafId === null) {
+              bentoRafId = requestAnimationFrame(flushBento);
+            }
+          }
+        };
+
+        scrollScheduler.subscribe("bento-tilt", updateBentoRect);
+        window.addEventListener("resize", updateBentoRect, { passive: true });
+
         document.querySelectorAll(".c").forEach((e) => {
           const el = e as HTMLElement;
-          let rect: DOMRect | null = null;
-          let rafId: number | null = null;
-          let latestX = 0;
-          let latestY = 0;
-
-          const flush = () => {
-            rafId = null;
-            if (!rect) return;
-            const px = latestX - rect.left;
-            const py = latestY - rect.top;
-            el.style.setProperty("--x", px + "px");
-            el.style.setProperty("--y", py + "px");
-            const rotX = (py / rect.height - 0.5) * -6;
-            const rotY = (px / rect.width - 0.5) * 6;
-            el.style.transform =
-              "perspective(900px) rotateX(" + rotX + "deg) rotateY(" + rotY + "deg)";
-          };
 
           el.addEventListener("mouseenter", () => {
-            rect = el.getBoundingClientRect();
+            activeBentoCard = el;
+            activeBentoRect = el.getBoundingClientRect();
           });
 
           el.addEventListener("mousemove", (v) => {
-            if (!rect) rect = el.getBoundingClientRect();
-            latestX = v.clientX;
-            latestY = v.clientY;
-            if (rafId === null) {
-              rafId = requestAnimationFrame(flush);
+            if (activeBentoCard !== el || !activeBentoRect) {
+              activeBentoCard = el;
+              activeBentoRect = el.getBoundingClientRect();
+            }
+            bentoLatestX = v.clientX;
+            bentoLatestY = v.clientY;
+            if (bentoRafId === null) {
+              bentoRafId = requestAnimationFrame(flushBento);
             }
           });
 
           el.addEventListener("mouseleave", () => {
-            rect = null;
-            if (rafId !== null) {
-              cancelAnimationFrame(rafId);
-              rafId = null;
+            if (activeBentoCard === el) {
+              activeBentoCard = null;
+              activeBentoRect = null;
+            }
+            if (bentoRafId !== null) {
+              cancelAnimationFrame(bentoRafId);
+              bentoRafId = null;
             }
             el.style.transform = "";
           });
@@ -959,6 +983,9 @@ export default function Home() {
               "h",
               !!(e.target as HTMLElement).closest("a,button,.c,input")
             );
+          }
+          if (curRafId === null && Math.hypot(tx - x, ty - y) >= 0.1) {
+            curRafId = requestAnimationFrame(l);
           }
         });
         document.querySelectorAll(".btn").forEach((b) => {
@@ -3128,6 +3155,8 @@ export default function Home() {
       scrollScheduler.unsubscribe("sp");
       scrollScheduler.unsubscribe("gp");
       scrollScheduler.unsubscribe("spy");
+      scrollScheduler.unsubscribe("console-tilt");
+      scrollScheduler.unsubscribe("bento-tilt");
       if ((window as any).__orbCleanup) {
         (window as any).__orbCleanup();
       }
