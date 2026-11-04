@@ -650,11 +650,11 @@ export default function Home() {
       sc.add(mesh);
 
       let sy = typeof window !== "undefined" ? window.scrollY : 0;
-      const onScroll = () => {
-        sy = window.scrollY;
+      const onScroll = (newSy: number) => {
+        sy = newSy;
         if (isOrbInView) startLpIfNeeded();
       };
-      window.addEventListener("scroll", onScroll, { passive: true });
+      scrollScheduler.subscribe("sy", onScroll);
 
       const chArr = [].slice.call(box.querySelectorAll(".chip")) as HTMLElement[];
       const chPrevZ = new Array(chArr.length).fill("");
@@ -808,7 +808,7 @@ export default function Home() {
         stopLp();
         window.removeEventListener("resize", rz);
         window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("scroll", onScroll);
+        scrollScheduler.unsubscribe("sy");
         document.removeEventListener("visibilitychange", handleVisChange);
         if (orbObserver) orbObserver.disconnect();
         if (boxRo) boxRo.disconnect();
