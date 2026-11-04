@@ -948,16 +948,38 @@ export default function Home() {
         });
         document.querySelectorAll(".btn").forEach((b) => {
           const btn = b as HTMLElement;
-          btn.addEventListener("mousemove", (e) => {
-            const r = btn.getBoundingClientRect();
-            btn.style.transform =
-              "translate(" +
-              (e.clientX - r.left - r.width / 2) * 0.3 +
-              "px," +
-              (e.clientY - r.top - r.height / 2) * 0.4 +
-              "px)";
+          let r: DOMRect | null = null;
+          let rafId: number | null = null;
+          let latestX = 0;
+          let latestY = 0;
+
+          const flush = () => {
+            rafId = null;
+            if (!r) return;
+            const tx = (latestX - r.left - r.width / 2) * 0.3;
+            const ty = (latestY - r.top - r.height / 2) * 0.4;
+            btn.style.transform = "translate(" + tx + "px," + ty + "px)";
+          };
+
+          btn.addEventListener("mouseenter", () => {
+            r = btn.getBoundingClientRect();
           });
+
+          btn.addEventListener("mousemove", (e) => {
+            if (!r) r = btn.getBoundingClientRect();
+            latestX = e.clientX;
+            latestY = e.clientY;
+            if (rafId === null) {
+              rafId = requestAnimationFrame(flush);
+            }
+          });
+
           btn.addEventListener("mouseleave", () => {
+            r = null;
+            if (rafId !== null) {
+              cancelAnimationFrame(rafId);
+              rafId = null;
+            }
             btn.style.transform = "";
           });
         });
