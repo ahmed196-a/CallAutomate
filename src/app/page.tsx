@@ -299,24 +299,77 @@ export default function Home() {
         }
 
         if (hero) {
-          hero.addEventListener("mousemove", (e) => {
-            const r = cv.getBoundingClientRect();
-            M.x = e.clientX - r.left;
-            M.y = e.clientY - r.top;
-            if (!HM && window.innerWidth > 860 && con) {
-              const b = hero.getBoundingClientRect();
-              con.style.transform =
-                "perspective(1400px) rotateX(" +
-                ((e.clientY - b.top) / b.height - 0.6) * -7 +
-                "deg) rotateY(" +
-                ((e.clientX - b.left) / b.width - 0.5) * 7 +
-                "deg)";
+          let heroRect: DOMRect | null = null;
+          let cvRect: DOMRect | null = null;
+          let tiltRafId: number | null = null;
+          let latestX = 0;
+          let latestY = 0;
+          let isHovered = false;
+
+          const updateTilt = () => {
+            tiltRafId = null;
+            if (!isHovered || !heroRect || !con) return;
+            const rotX = ((latestY - heroRect.top) / heroRect.height - 0.6) * -7;
+            const rotY = ((latestX - heroRect.left) / heroRect.width - 0.5) * 7;
+            con.style.transform =
+              "perspective(1400px) rotateX(" + rotX + "deg) rotateY(" + rotY + "deg)";
+          };
+
+          const updateRects = () => {
+            if (isHovered && hero) {
+              heroRect = hero.getBoundingClientRect();
+              if (cv) cvRect = cv.getBoundingClientRect();
+            }
+          };
+
+          hero.addEventListener("mouseenter", () => {
+            if (!HM && window.matchMedia("(pointer:fine)").matches && window.innerWidth > 860) {
+              isHovered = true;
+              heroRect = hero.getBoundingClientRect();
+              if (cv) cvRect = cv.getBoundingClientRect();
+              if (con) con.style.transition = "none";
             }
           });
-          hero.addEventListener("mouseleave", () => {
-            M.x = M.y = -999;
-            if (con) con.style.transform = "";
+
+          hero.addEventListener("mousemove", (e) => {
+            if (!isHovered) {
+              if (!HM && window.matchMedia("(pointer:fine)").matches && window.innerWidth > 860) {
+                isHovered = true;
+                heroRect = hero.getBoundingClientRect();
+                if (cv) cvRect = cv.getBoundingClientRect();
+                if (con) con.style.transition = "none";
+              } else {
+                return;
+              }
+            }
+            latestX = e.clientX;
+            latestY = e.clientY;
+            if (cvRect) {
+              M.x = latestX - cvRect.left;
+              M.y = latestY - cvRect.top;
+            }
+            if (con && tiltRafId === null) {
+              tiltRafId = requestAnimationFrame(updateTilt);
+            }
           });
+
+          hero.addEventListener("mouseleave", () => {
+            isHovered = false;
+            heroRect = null;
+            cvRect = null;
+            if (tiltRafId !== null) {
+              cancelAnimationFrame(tiltRafId);
+              tiltRafId = null;
+            }
+            M.x = M.y = -999;
+            if (con) {
+              con.style.transition = "transform .25s ease-out";
+              con.style.transform = "";
+            }
+          });
+
+          window.addEventListener("scroll", updateRects, { passive: true });
+          window.addEventListener("resize", updateRects, { passive: true });
         }
         window.addEventListener("resize", rs);
         rs();
