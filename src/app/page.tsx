@@ -1103,28 +1103,21 @@ export default function Home() {
 
     // Module 7: Giant typography parallax
     (() => {
-      const G = [].slice.call(
-        document.querySelectorAll(".gt")
-      ) as HTMLElement[];
-      function gp() {
-        G.forEach((g) => {
-          if (!g.parentNode) return;
-          const r = (g.parentNode as HTMLElement).getBoundingClientRect();
-          const c = r.top + r.height / 2 - window.innerHeight / 2;
-          const d = Number(g.dataset.d) || 1;
-          g.style.setProperty(
+      function gp(sy: number, geom: GeometryCache) {
+        geom.gtParents.forEach((item) => {
+          const c = item.top - sy + item.height / 2 - geom.vpHeight / 2;
+          item.el.style.setProperty(
             "--ty",
             Math.max(-90, Math.min(90, c * -0.12)) + "px"
           );
-          g.style.setProperty(
+          item.el.style.setProperty(
             "--tx",
-            Math.max(-140, Math.min(140, c * 0.18 * d)) + "px"
+            Math.max(-140, Math.min(140, c * 0.18 * item.d)) + "px"
           );
         });
       }
       if (!HM) {
-        window.addEventListener("scroll", gp, { passive: true });
-        gp();
+        scrollScheduler.subscribe("gp", gp);
       }
     })();
 
@@ -3028,6 +3021,7 @@ export default function Home() {
       scrollScheduler.unsubscribe("f");
       scrollScheduler.unsubscribe("bs");
       scrollScheduler.unsubscribe("sp");
+      scrollScheduler.unsubscribe("gp");
       if ((window as any).__orbCleanup) {
         (window as any).__orbCleanup();
       }
