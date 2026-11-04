@@ -14,7 +14,13 @@ export default function Home() {
     // Ensure window.THREE is available
     if (typeof window !== "undefined") {
       (window as any).THREE = THREE;
-      (window as any).__openVoiceOrb = () => setIsVoiceOrbOpen(true);
+      (window as any).__openVoiceOrb = () => {
+        (window as any).__isVoiceOrbOpen = true;
+        if (typeof (window as any).stopHeroOrb === 'function') {
+          (window as any).stopHeroOrb();
+        }
+        setIsVoiceOrbOpen(true);
+      };
     }
 
     // Set images to our logo
@@ -814,12 +820,13 @@ export default function Home() {
       let simTime = 0;
 
       function startLpIfNeeded() {
-        if (isOrbInView && !document.hidden && !R && !lpRafId) {
+        if (isOrbInView && !document.hidden && !R && !lpRafId && !(window as any).__isVoiceOrbOpen) {
           lastTs = null;
           lpRafId = requestAnimationFrame(lp);
         }
       }
       (window as any).startHeroOrb = startLpIfNeeded;
+      (window as any).stopHeroOrb = stopLp;
 
       function stopLp() {
         if (lpRafId) {
@@ -4622,7 +4629,13 @@ export default function Home() {
 
       <VoiceOrbScreen
         isOpen={isVoiceOrbOpen}
-        onClose={() => setIsVoiceOrbOpen(false)}
+        onClose={() => {
+          (window as any).__isVoiceOrbOpen = false;
+          setIsVoiceOrbOpen(false);
+          if (typeof (window as any).startHeroOrb === 'function') {
+            (window as any).startHeroOrb();
+          }
+        }}
       />
     </>
   );
