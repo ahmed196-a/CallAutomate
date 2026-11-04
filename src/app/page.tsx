@@ -405,6 +405,7 @@ export default function Home() {
           if (frRafId) cancelAnimationFrame(frRafId);
           if (heroObserver) heroObserver.disconnect();
           scrollScheduler.unsubscribe("console-tilt");
+          window.removeEventListener("resize", rs);
         };
       }
 
@@ -439,6 +440,9 @@ export default function Home() {
 
         scrollScheduler.subscribe("bento-tilt", updateBentoRect);
         window.addEventListener("resize", updateBentoRect, { passive: true });
+        (window as any).__bentoCleanup = () => {
+          window.removeEventListener("resize", updateBentoRect);
+        };
 
         document.querySelectorAll(".c").forEach((e) => {
           const el = e as HTMLElement;
@@ -665,6 +669,10 @@ export default function Home() {
       };
       window.addEventListener("wheel", resetClickLock, { passive: true });
       window.addEventListener("touchstart", resetClickLock, { passive: true });
+      (window as any).__storyLockCleanup = () => {
+        window.removeEventListener("wheel", resetClickLock);
+        window.removeEventListener("touchstart", resetClickLock);
+      };
 
       function f(sy: number, geom: GeometryCache) {
         if (!st || !dv || !geom.story) return;
@@ -998,15 +1006,15 @@ export default function Home() {
           curRafId = requestAnimationFrame(l);
         }
 
-        window.addEventListener("mousemove", (e) => {
+        const onCursorMove = (e: MouseEvent) => {
           tx = e.clientX;
           ty = e.clientY;
           if (cd) cd.style.transform = "translate(" + tx + "px," + ty + "px)";
           if (curRafId === null) {
             curRafId = requestAnimationFrame(l);
           }
-        });
-        document.addEventListener("mouseover", (e) => {
+        };
+        const onCursorOver = (e: MouseEvent) => {
           if (cr) {
             cr.classList.toggle(
               "h",
@@ -1016,7 +1024,14 @@ export default function Home() {
           if (curRafId === null && Math.hypot(tx - x, ty - y) >= 0.1) {
             curRafId = requestAnimationFrame(l);
           }
-        });
+        };
+        window.addEventListener("mousemove", onCursorMove);
+        document.addEventListener("mouseover", onCursorOver);
+        (window as any).__cursorCleanup = () => {
+          if (curRafId !== null) cancelAnimationFrame(curRafId);
+          window.removeEventListener("mousemove", onCursorMove);
+          document.removeEventListener("mouseover", onCursorOver);
+        };
         document.querySelectorAll(".btn").forEach((b) => {
           const btn = b as HTMLElement;
           let r: DOMRect | null = null;
@@ -1608,13 +1623,19 @@ export default function Home() {
             });
         }
         ck();
-        setInterval(ck, 20000);
+        const ckInterval = setInterval(ck, 20000);
         sel(0);
         if (!R) {
           au = setInterval(() => {
             sel((cur + 1) % P.length);
           }, 11000);
         }
+        (window as any).__posDemoCleanup = () => {
+          clearInterval(ckInterval);
+          clearInterval(au);
+          clearInterval(tm);
+          clr();
+        };
       }
     })();
 
@@ -2172,21 +2193,29 @@ export default function Home() {
           });
         });
       }
-      document.addEventListener("click", (e) => {
+      const onNavDocClick = (e: MouseEvent) => {
         if (dd && !dd.contains(e.target as Node)) {
           dd.classList.remove("open");
           if (dt) dt.setAttribute("aria-expanded", "false");
         }
-      });
-      document.addEventListener("keydown", (e) => {
+      };
+      const onNavDocKeydown = (e: KeyboardEvent) => {
         if (e.key === "Escape") {
           if (dd) dd.classList.remove("open");
           tog(false);
         }
-      });
-      window.addEventListener("resize", () => {
+      };
+      const onNavWindowResize = () => {
         if (window.innerWidth > 960) tog(false);
-      });
+      };
+      document.addEventListener("click", onNavDocClick);
+      document.addEventListener("keydown", onNavDocKeydown);
+      window.addEventListener("resize", onNavWindowResize);
+      (window as any).__navGlobalCleanup = () => {
+        document.removeEventListener("click", onNavDocClick);
+        document.removeEventListener("keydown", onNavDocKeydown);
+        window.removeEventListener("resize", onNavWindowResize);
+      };
 
       const navLinks = Array.from(
         document.querySelectorAll(".nl [data-s]")
@@ -3213,6 +3242,21 @@ export default function Home() {
       }
       if ((window as any).__cvCleanup) {
         (window as any).__cvCleanup();
+      }
+      if ((window as any).__bentoCleanup) {
+        (window as any).__bentoCleanup();
+      }
+      if ((window as any).__storyLockCleanup) {
+        (window as any).__storyLockCleanup();
+      }
+      if ((window as any).__cursorCleanup) {
+        (window as any).__cursorCleanup();
+      }
+      if ((window as any).__posDemoCleanup) {
+        (window as any).__posDemoCleanup();
+      }
+      if ((window as any).__navGlobalCleanup) {
+        (window as any).__navGlobalCleanup();
       }
       const tryBox = document.getElementById("try") as any;
       if (tryBox?._demoCleanup) tryBox._demoCleanup();
