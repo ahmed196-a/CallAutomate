@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import * as THREE from "three";
 import VoiceOrbScreen from "@/components/VoiceOrbScreen";
+import { scrollScheduler, GeometryCache } from "@/lib/scrollScheduler";
 
 const LOGO_SRC = "/logo-removebg-preview.png";
 
@@ -344,20 +345,23 @@ export default function Home() {
           .map((w) => "<span>" + w + "</span>")
           .join(" ");
         const sp = rv.children;
-        const sc = () => {
-          const r = rv.getBoundingClientRect();
+        const sc = (sy: number, geom: GeometryCache) => {
+          if (!geom.rv) return;
+          const rTop = geom.rv.top - sy;
           const pr =
-            (window.innerHeight * 0.85 - r.top) /
-            (r.height + window.innerHeight * 0.35);
+            (geom.vpHeight * 0.85 - rTop) /
+            (geom.rv.height + geom.vpHeight * 0.35);
           const n = R
             ? sp.length
             : Math.max(0, Math.min(1, pr)) * sp.length;
           for (let i = 0; i < sp.length; i++) {
-            sp[i].className = i < n ? "on" : "";
+            const cls = i < n ? "on" : "";
+            if (sp[i].className !== cls) {
+              sp[i].className = cls;
+            }
           }
         };
-        window.addEventListener("scroll", sc, { passive: true });
-        sc();
+        scrollScheduler.subscribe("sc", sc);
       }
 
       const L = document.getElementById("lines");
@@ -3014,6 +3018,7 @@ export default function Home() {
     }
 
     return () => {
+      scrollScheduler.unsubscribe("sc");
       if ((window as any).__orbCleanup) {
         (window as any).__orbCleanup();
       }
