@@ -204,9 +204,22 @@ export default function Home() {
         const M = { x: -999, y: -999 };
         let W = 0,
           H = 0;
+        let frRafId: number | null = null;
+        let heroObserver: IntersectionObserver | null = null;
+
+        function isCanvasVisible() {
+          return cv && (cv.offsetParent !== null || cv.offsetWidth > 0 || cv.offsetHeight > 0);
+        }
 
         function rs() {
           if (!cv || !c) return;
+          if (!isCanvasVisible()) {
+            if (frRafId) {
+              cancelAnimationFrame(frRafId);
+              frRafId = null;
+            }
+            return;
+          }
           const d = window.devicePixelRatio || 1;
           W = cv.offsetWidth;
           H = cv.offsetHeight;
@@ -222,6 +235,7 @@ export default function Home() {
               vy: Math.random() - 0.5,
             });
           }
+          if (!frRafId && !R) fr();
         }
 
         function ln(
@@ -243,14 +257,18 @@ export default function Home() {
 
         let isHeroInView = true;
         if (typeof window !== "undefined" && "IntersectionObserver" in window && hero) {
-          new IntersectionObserver((entries) => {
+          heroObserver = new IntersectionObserver((entries) => {
             isHeroInView = entries[0].isIntersecting;
-          }, { threshold: 0.05 }).observe(hero);
+          }, { threshold: 0.05 });
+          heroObserver.observe(hero);
         }
 
         function fr() {
-          if (!c) return;
-          if (!R) requestAnimationFrame(fr);
+          if (!c || !isCanvasVisible()) {
+            frRafId = null;
+            return;
+          }
+          if (!R) frRafId = requestAnimationFrame(fr);
 
           // Avoid burning CPU when offscreen or while modal call intro is active
           const introActive = !document.body.classList.contains("go") && document.getElementById("in")?.style.display !== "none";
@@ -301,7 +319,13 @@ export default function Home() {
         }
         window.addEventListener("resize", rs);
         rs();
-        fr();
+        if (isCanvasVisible()) {
+          fr();
+        }
+        (window as any).__cvCleanup = () => {
+          if (frRafId) cancelAnimationFrame(frRafId);
+          if (heroObserver) heroObserver.disconnect();
+        };
       }
 
       document.querySelectorAll(".c").forEach((e) => {
@@ -379,14 +403,20 @@ export default function Home() {
           }, 4400);
         };
 
-        new IntersectionObserver((e) => {
+        const linesObserver = new IntersectionObserver((e) => {
           if (e[0].isIntersecting) {
             if (!iv) iv = setInterval(tick, 450);
           } else {
             clearInterval(iv);
             iv = 0;
           }
-        }).observe(L);
+        });
+        linesObserver.observe(L);
+
+        (window as any).__linesCleanup = () => {
+          if (iv) clearInterval(iv);
+          linesObserver.disconnect();
+        };
       }
     })();
 
@@ -2865,7 +2895,44 @@ export default function Home() {
       };
     })();
 
+    // Phase 1: Shared IntersectionObserver to pause offscreen infinite CSS animations
+    let offscreenAnimObserver: IntersectionObserver | null = null;
+    if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+      offscreenAnimObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.remove("anim-paused");
+            } else {
+              entry.target.classList.add("anim-paused");
+            }
+          });
+        },
+        { rootMargin: "120px" }
+      );
+
+      const animTargets = [
+        document.querySelector(".big"),
+        document.querySelector(".wv"),
+        document.querySelector(".pill i"),
+        document.querySelector("h1 span"),
+        document.getElementById("lines"),
+      ];
+      animTargets.forEach((el) => {
+        if (el) offscreenAnimObserver?.observe(el);
+      });
+    }
+
     return () => {
+      if (offscreenAnimObserver) {
+        offscreenAnimObserver.disconnect();
+      }
+      if ((window as any).__linesCleanup) {
+        (window as any).__linesCleanup();
+      }
+      if ((window as any).__cvCleanup) {
+        (window as any).__cvCleanup();
+      }
       const tryBox = document.getElementById("try") as any;
       if (tryBox?._demoCleanup) tryBox._demoCleanup();
       if ((window as any).__orderDemoCleanup) {
@@ -3758,16 +3825,28 @@ export default function Home() {
 
       <div className="big" aria-hidden="true">
         <div id="r1">
-          <span>Every call.</span>
-          <span className="o">Every chat.</span>
-          <span>Every order.</span>
-          <span className="o">Every call.</span>
+          <div className="big-track mq">
+            <span>Every call.</span>
+            <span className="o">Every chat.</span>
+            <span>Every order.</span>
+            <span className="o">Every call.</span>
+            <span>Every call.</span>
+            <span className="o">Every chat.</span>
+            <span>Every order.</span>
+            <span className="o">Every call.</span>
+          </div>
         </div>
         <div id="r2">
-          <span className="o">Never missed.</span>
-          <span>Never late.</span>
-          <span className="o">Never busy.</span>
-          <span>Never missed.</span>
+          <div className="big-track mq">
+            <span className="o">Never missed.</span>
+            <span>Never late.</span>
+            <span className="o">Never busy.</span>
+            <span>Never missed.</span>
+            <span className="o">Never missed.</span>
+            <span>Never late.</span>
+            <span className="o">Never busy.</span>
+            <span>Never missed.</span>
+          </div>
         </div>
       </div>
 
