@@ -876,17 +876,14 @@ export default function Home() {
 
       const r1 = document.getElementById("r1");
       const r2 = document.getElementById("r2");
-      function bs() {
-        if (!r1 || !r2 || !r1.parentNode) return;
-        let p =
-          window.innerHeight -
-          (r1.parentNode as HTMLElement).getBoundingClientRect().top;
+      function bs(sy: number, geom: GeometryCache) {
+        if (!r1 || !r2 || !geom.big) return;
+        let p = geom.vpHeight - (geom.big.top - sy);
         if (HM) p = 0;
         r1.style.transform = "translateX(" + -p * 0.4 + "px)";
         r2.style.transform = "translateX(" + (-1100 + p * 0.4) + "px)";
       }
-      window.addEventListener("scroll", bs, { passive: true });
-      bs();
+      scrollScheduler.subscribe("bs", bs);
 
       const C: Record<
         string,
@@ -3034,6 +3031,7 @@ export default function Home() {
     return () => {
       scrollScheduler.unsubscribe("sc");
       scrollScheduler.unsubscribe("f");
+      scrollScheduler.unsubscribe("bs");
       if ((window as any).__orbCleanup) {
         (window as any).__orbCleanup();
       }
