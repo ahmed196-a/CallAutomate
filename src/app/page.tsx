@@ -743,7 +743,6 @@ export default function Home() {
         sy = newSy;
         if (isOrbInView) startLpIfNeeded();
       };
-      scrollScheduler.subscribe("sy", onScroll);
 
       const chArr = [].slice.call(box.querySelectorAll(".chip")) as HTMLElement[];
       const chPrevZ = new Array(chArr.length).fill("");
@@ -891,6 +890,7 @@ export default function Home() {
           }
         }
       }
+      scrollScheduler.subscribe("sy", onScroll);
       startLpIfNeeded();
 
       (window as any).__orbCleanup = () => {
