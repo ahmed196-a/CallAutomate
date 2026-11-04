@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import * as THREE from "three";
 import VoiceOrbScreen from "@/components/VoiceOrbScreen";
+import { getLenis } from "@/components/SmoothScroll";
 import { scrollScheduler, GeometryCache } from "@/lib/scrollScheduler";
 
 const LOGO_SRC = "/logo-removebg-preview.png";
@@ -619,10 +620,15 @@ export default function Home() {
         const targetP = (targetIdx + 0.15) / 4;
         const targetScrollY = storyDocumentTop + targetP * totalScrollable;
 
-        window.scrollTo({
-          top: targetScrollY,
-          behavior: "smooth",
-        });
+        const lenis = getLenis();
+        if (lenis) {
+          lenis.scrollTo(targetScrollY, { duration: 0.8 });
+        } else {
+          window.scrollTo({
+            top: targetScrollY,
+            behavior: "smooth",
+          });
+        }
 
         clickTimer = setTimeout(() => {
           isClickScrolling = false;
@@ -2122,6 +2128,12 @@ export default function Home() {
         mp.classList.toggle("on", o);
         mp.setAttribute("aria-hidden", String(!o));
         document.documentElement.style.overflow = o ? "hidden" : "";
+        const lenis = getLenis();
+        if (o) {
+          lenis?.stop();
+        } else {
+          lenis?.start();
+        }
       }
 
       if (hb) {
@@ -2964,7 +2976,12 @@ export default function Home() {
         }
 
         if (!valid && firstErrEl) {
-          firstErrEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          const lenis = getLenis();
+          if (lenis) {
+            lenis.scrollTo(firstErrEl as HTMLElement, { offset: -window.innerHeight / 3 });
+          } else {
+            firstErrEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
           if (typeof (firstErrEl as any).focus === "function") {
             (firstErrEl as any).focus();
           }
@@ -3085,7 +3102,12 @@ export default function Home() {
         const kdone = $("kdone");
         if (kdone) kdone.hidden = false;
         const kxf = $("kxf");
-        if (kxf) kxf.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        const lenis = getLenis();
+        if (lenis && kxf) {
+          lenis.scrollTo(kxf as HTMLElement);
+        } else if (kxf) {
+          kxf.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
       };
 
       const kre = $("kre");
@@ -3398,7 +3420,7 @@ export default function Home() {
         </div>
       </nav>
 
-      <div className="mp" id="mp" aria-hidden="true">
+      <div className="mp" id="mp" aria-hidden="true" data-lenis-prevent>
         <div className="mpi">
           <a href="#home">Home</a>
           <button className="mpd" aria-expanded="false">
@@ -3589,7 +3611,7 @@ export default function Home() {
             role="region"
             aria-label="Interactive order demo"
           >
-            <div className="tabs" role="tablist">
+            <div className="tabs" role="tablist" data-lenis-prevent>
               <button role="tab" data-k="call" aria-selected="true">
                 Phone call
               </button>

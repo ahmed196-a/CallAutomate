@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import "./voice-orb.css";
 import { useLiveKitVoiceOrb } from "@/hooks/useLiveKitVoiceOrb";
+import { getLenis } from "@/components/SmoothScroll";
 import {
   executeOrbAction,
   type OrbFormData,
@@ -412,6 +413,17 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     };
   }, [isOpen]);
 
+  // Stop Lenis while voice modal is open
+  useEffect(() => {
+    const lenis = getLenis();
+    if (isOpen && viewMode === "fullscreen") {
+      lenis?.stop();
+      return () => {
+        lenis?.start();
+      };
+    }
+  }, [isOpen, viewMode]);
+
   // Orb Animation Loop & Mouse Parallax
   useEffect(() => {
     if (!isOpen) return;
@@ -594,7 +606,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     <>
       {/* 1. FULL-SCREEN INTERACTIVE VOICE EXPERIENCE */}
       {viewMode === "fullscreen" && (
-        <div className="vo-fullscreen">
+        <div className="vo-fullscreen" data-lenis-prevent>
           {/* Top Navbar Header */}
           <header className="vo-screen-header">
             <div className="vo-header-left">
@@ -632,7 +644,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
           </header>
 
           {/* Main Body Grid: Left = Orb + Controls, Right = Live Conversation Card */}
-          <main className="vo-screen-body">
+          <main className="vo-screen-body" data-lenis-prevent>
             <div className="vo-orb-column">
               <div ref={orbWrapRef} className="vo-orb-wrapper">
                 <div className="vo-orbital-ring">
@@ -716,7 +728,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
                   <span className="vo-agent-badge">AI Agent</span>
                 </div>
 
-                <div ref={chatLogRef} className="vo-chat-messages">
+                <div ref={chatLogRef} className="vo-chat-messages" data-lenis-prevent>
                   {messages.map((m, i) => (
                     <div key={i} className={`vo-chat-row ${m.sender}`}>
                       {m.sender === "agent" && (
@@ -803,7 +815,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
               <span className="vo-quick-sub">Try these or ask your own question</span>
             </div>
 
-            <div className="vo-chips-row">
+            <div className="vo-chips-row" data-lenis-prevent>
               {CHIP_ACTIONS.map((item, idx) => (
                 <button
                   key={idx}

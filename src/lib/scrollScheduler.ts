@@ -82,7 +82,9 @@ class ScrollScheduler {
   }
 
   private onWindowScroll = () => {
-    this.currentScrollY = window.scrollY;
+    const sy = window.scrollY;
+    if (Math.abs(this.currentScrollY - sy) < 0.5) return;
+    this.currentScrollY = sy;
     this.scheduleFrame();
   };
 
@@ -203,6 +205,7 @@ class ScrollScheduler {
    * External feed for scroll value (used by Phase 6 Lenis integration)
    */
   public setScrollY(y: number) {
+    if (Math.abs(this.currentScrollY - y) < 0.5) return;
     this.currentScrollY = y;
     this.scheduleFrame();
   }

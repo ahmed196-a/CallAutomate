@@ -4,6 +4,7 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 :root[data-theme="dark"]{--bg:#0b0e1a;--sf:#11162a;--soft:#182038;--ink:#f1f5f9;--mute:#94a3b8;--ln:#1e293b;--a:#38bdf8;--b:#2e73ed}
 *{box-sizing:border-box;margin:0}
 html{scroll-behavior:smooth;scroll-padding-top:env(safe-area-inset-top,0px)}
+html.lenis,html.lenis body{scroll-behavior:auto!important}
 body{background:var(--bg);color:var(--ink);font:400 17px/1.6 "Work Sans",system-ui,sans-serif;overflow-x:hidden}
 h1,h2,h3{font-family:Outfit,system-ui,sans-serif;line-height:1.05;letter-spacing:-.03em}
 a{color:inherit;text-decoration:none}
