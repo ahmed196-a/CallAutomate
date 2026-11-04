@@ -2016,29 +2016,24 @@ export default function Home() {
         if (window.innerWidth > 960) tog(false);
       });
 
-      const sp: [string, string][] = [
-        ["home", ".hero"],
-        ["products", "#products"],
-        ["roi", "#roi"],
-        ["integrations", "#integrations"],
-        ["contact", "#contact"],
-      ];
-      function spy() {
+      const navLinks = Array.from(
+        document.querySelectorAll(".nl [data-s]")
+      ) as HTMLElement[];
+      let lastCur = "";
+      function spy(sy: number, geom: GeometryCache) {
         let cur = "home";
-        const y = window.innerHeight * 0.4;
-        sp.forEach((x) => {
-          const e = document.querySelector(x[1]);
-          if (e && e.getBoundingClientRect().top <= y) cur = x[0];
+        const y = geom.vpHeight * 0.4;
+        geom.sections.forEach((x) => {
+          if (x.top - sy <= y) cur = x.name;
         });
-        document.querySelectorAll(".nl [data-s]").forEach((a) => {
-          a.classList.toggle(
-            "act",
-            (a as HTMLElement).dataset.s === cur
-          );
-        });
+        if (cur !== lastCur) {
+          lastCur = cur;
+          navLinks.forEach((a) => {
+            a.classList.toggle("act", a.dataset.s === cur);
+          });
+        }
       }
-      window.addEventListener("scroll", spy, { passive: true });
-      spy();
+      scrollScheduler.subscribe("spy", spy);
     })();
 
     // Module 12: Sound Effects System (Web Audio API)
@@ -3022,6 +3017,7 @@ export default function Home() {
       scrollScheduler.unsubscribe("bs");
       scrollScheduler.unsubscribe("sp");
       scrollScheduler.unsubscribe("gp");
+      scrollScheduler.unsubscribe("spy");
       if ((window as any).__orbCleanup) {
         (window as any).__orbCleanup();
       }
