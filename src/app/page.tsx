@@ -1075,16 +1075,11 @@ export default function Home() {
     // Module 6: Scroll Progress & Range background filling
     (() => {
       const pg = document.getElementById("pg");
-      function sp() {
+      function sp(sy: number, geom: GeometryCache) {
         if (!pg) return;
-        pg.style.transform =
-          "scaleX(" +
-          window.scrollY /
-            (document.documentElement.scrollHeight - window.innerHeight) +
-          ")";
+        pg.style.transform = "scaleX(" + sy / geom.maxScroll + ")";
       }
-      window.addEventListener("scroll", sp, { passive: true });
-      sp();
+      scrollScheduler.subscribe("sp", sp);
 
       ["cw", "ca", "cc"].forEach((i) => {
         const e = document.getElementById(i) as HTMLInputElement;
@@ -3032,6 +3027,7 @@ export default function Home() {
       scrollScheduler.unsubscribe("sc");
       scrollScheduler.unsubscribe("f");
       scrollScheduler.unsubscribe("bs");
+      scrollScheduler.unsubscribe("sp");
       if ((window as any).__orbCleanup) {
         (window as any).__orbCleanup();
       }
