@@ -38,6 +38,7 @@ const SLOT_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps) {
   const [viewMode, setViewMode] = useState<"fullscreen" | "docked">("fullscreen");
   const [, setUserName] = useState<string>("");
+  const [inputText, setInputText] = useState<string>("");
 
   // Refs for visual stage and audio analysis
   const canvasWrapRef = useRef<HTMLDivElement | null>(null);
@@ -65,8 +66,14 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     slot: "",
   });
 
-  // Captions state management
-  const captionCurRef = useRef<{ who: "agent" | "user"; p: HTMLParagraphElement; words: string[] } | null>(null);
+  // Captions state management with live streaming word reveal
+  const captionCurRef = useRef<{
+    who: "agent" | "user";
+    p: HTMLParagraphElement;
+    renderedWords: string[];
+    targetWords: string[];
+  } | null>(null);
+  const captionStreamTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const captionIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const caption = useCallback((who: "agent" | "user", text: string) => {
@@ -79,10 +86,15 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
 
     if (!captionCurRef.current || captionCurRef.current.who !== who) {
+      if (captionStreamTimerRef.current) {
+        clearInterval(captionStreamTimerRef.current);
+        captionStreamTimerRef.current = null;
+      }
+
       Array.from(caps.children).forEach((el) => {
         if (el.classList.contains("old")) {
           el.classList.add("gone");
-          setTimeout(() => el.remove(), 500);
+          setTimeout(() => el.remove(), 400);
         } else {
           el.classList.add("old");
         }
@@ -104,29 +116,75 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
       }
 
       caps.appendChild(el);
-      captionCurRef.current = { who, p, words: [] };
+      captionCurRef.current = { who, p, renderedWords: [], targetWords: [] };
     }
 
     const cur = captionCurRef.current;
-    if (cur.words.some((w, i) => w !== words[i]) || words.length < cur.words.length) {
-      cur.p.innerHTML = "";
-      cur.words = [];
-    }
+    cur.targetWords = words;
 
-    for (let i = cur.words.length; i < words.length; i++) {
-      const w = document.createElement("span");
-      w.className = "w";
-      w.textContent = words[i];
-      cur.p.appendChild(w);
+    const appendWordSpan = (wText: string) => {
+      const span = document.createElement("span");
+      span.className = "vo-word";
+      span.textContent = wText;
+      cur.p.appendChild(span);
       cur.p.appendChild(document.createTextNode(" "));
+    };
+
+    if (who === "user") {
+      if (cur.renderedWords.length !== words.length) {
+        cur.p.innerHTML = "";
+        words.forEach(appendWordSpan);
+        cur.renderedWords = [...words];
+      }
+    } else {
+      // Check if current words match prefix or if new sentence
+      if (
+        cur.renderedWords.length > words.length ||
+        cur.renderedWords.some((w, i) => w !== words[i])
+      ) {
+        cur.p.innerHTML = "";
+        cur.renderedWords = [];
+      }
+
+      const revealNextWord = () => {
+        if (!captionCurRef.current || captionCurRef.current.who !== "agent") {
+          if (captionStreamTimerRef.current) {
+            clearInterval(captionStreamTimerRef.current);
+            captionStreamTimerRef.current = null;
+          }
+          return;
+        }
+        const state = captionCurRef.current;
+        if (state.renderedWords.length < state.targetWords.length) {
+          const nextWord = state.targetWords[state.renderedWords.length];
+          appendWordSpan(nextWord);
+          state.renderedWords.push(nextWord);
+        } else {
+          if (captionStreamTimerRef.current) {
+            clearInterval(captionStreamTimerRef.current);
+            captionStreamTimerRef.current = null;
+          }
+        }
+      };
+
+      if (cur.renderedWords.length === 0 && cur.targetWords.length > 0) {
+        revealNextWord();
+      }
+
+      if (!captionStreamTimerRef.current && cur.renderedWords.length < cur.targetWords.length) {
+        captionStreamTimerRef.current = setInterval(revealNextWord, 120);
+      }
     }
-    cur.words = words;
 
     caps.classList.remove("idle");
     if (captionIdleTimerRef.current) clearTimeout(captionIdleTimerRef.current);
     captionIdleTimerRef.current = setTimeout(() => {
       caps.classList.add("idle");
       captionCurRef.current = null;
+      if (captionStreamTimerRef.current) {
+        clearInterval(captionStreamTimerRef.current);
+        captionStreamTimerRef.current = null;
+      }
     }, 7000);
   }, []);
 
@@ -427,8 +485,8 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     scene.add(fill);
 
     const root = new THREE.Group();
-    root.scale.setScalar(1.4);
-    root.position.y = 0.3;
+    root.scale.setScalar(1.35);
+    root.position.y = 0.38;
     scene.add(root);
 
     // Soft floor shadow
@@ -915,6 +973,8 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
 
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (captionStreamTimerRef.current) clearInterval(captionStreamTimerRef.current);
+      if (captionIdleTimerRef.current) clearTimeout(captionIdleTimerRef.current);
       if (look.t) clearTimeout(look.t);
       spotObserver.disconnect();
       ro.disconnect();
@@ -957,12 +1017,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
         <header className="vo-screen-header">
           <div className="vo-header-left">
             <div className="vo-brand">
-              <div className="mark">
-                <b>
-                  <i />
-                  <i />
-                </b>
-              </div>
+              <img src="/logo-removebg-preview.png" alt="CallAutomate" className="vo-brand-logo" />
               <span>CallAutomate</span>
             </div>
             <span className="vo-session-pill">
@@ -971,18 +1026,6 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
           </div>
 
           <div className="vo-header-right">
-            <button
-              className="vo-nav-btn view"
-              title="View website while staying on call"
-              onClick={() => setViewMode("docked")}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <span>View Website</span>
-            </button>
-
             <button className="vo-nav-btn end" title="End call" onClick={onClose}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
                 <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 4 .65 2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A19.93 19.93 0 0 1 3 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2 12.84 12.84 0 0 0 .65 4 2 2 0 0 1-.45 2.11L8.93 9.4" />
@@ -1004,15 +1047,18 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
                 {isMuted ? "Muted" : callStatus === "speaking" ? "Speaking..." : statusText.toLowerCase().includes("thinking") ? "Thinking..." : "Listening..."}
               </h2>
               <p className="vo-status-sub" id="statusSub">
-                {statusText && statusText !== "Listening..." && statusText !== "Microphone muted"
+                {isMuted
+                  ? "Microphone muted • Type a message below"
+                  : statusText && statusText !== "Listening..." && statusText !== "Microphone muted"
                   ? statusText
-                  : "Your AI agent is ready to help"}
+                  : "Your AI agent is ready to help • Speak or type anytime"}
               </p>
             </div>
 
-            {/* Call Controls Bar */}
+            {/* Call Controls Bar with Integrated Chat Input */}
             <div className="vo-callbar">
               <button
+                type="button"
                 className={`vo-round-btn ${isMuted ? "muted" : ""}`}
                 id="muteBtn"
                 aria-label={isMuted ? "Unmute" : "Mute"}
@@ -1044,7 +1090,41 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
                 <span />
               </div>
 
-              <button className="vo-round-btn end" aria-label="End call" onClick={onClose}>
+              {/* Integrated Chat Box */}
+              <form
+                className="vo-callbar-chat"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const text = inputText.trim();
+                  if (!text) return;
+                  caption("user", text);
+                  robotCtlRef.current?.thinking(true);
+                  handleUserInput(text);
+                  setInputText("");
+                }}
+              >
+                <input
+                  type="text"
+                  className="vo-callbar-input"
+                  placeholder="Type a message or speak..."
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  aria-label="Type a message to the agent"
+                />
+                <button
+                  type="submit"
+                  className={`vo-callbar-send-btn ${inputText.trim() ? "active" : ""}`}
+                  disabled={!inputText.trim()}
+                  aria-label="Send message"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              </form>
+
+              <button type="button" className="vo-round-btn end" aria-label="End call" onClick={onClose}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
@@ -1083,12 +1163,12 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
           onClick={() => setViewMode("fullscreen")}
         >
           <div className="vo-mini-orb-link">
-            <div className="mark" style={{ width: "100%", height: "100%" }}>
-              <b>
-                <i />
-                <i />
-              </b>
-            </div>
+            <img
+              src="/logo-removebg-preview.png"
+              alt="CallAutomate"
+              className="vo-brand-logo"
+              style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "contain" }}
+            />
           </div>
           <div className="vo-docked-info">
             <span className="vo-docked-title">CallAutomate</span>

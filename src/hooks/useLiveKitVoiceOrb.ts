@@ -170,6 +170,24 @@ export function useLiveKitVoiceOrb({
     });
 
     room
+      .on(RoomEvent.TranscriptionReceived, (segments: any[], participant: any) => {
+        if (!segments || !segments.length) return;
+        const isAgent =
+          participant?.kind === ParticipantKind.AGENT ||
+          (participant?.identity && participant.identity !== room.localParticipant.identity);
+        const text = segments.map((s) => s.text).join(" ").trim();
+        if (text) {
+          onChatMessageRef.current(isAgent ? "agent" : "user", text);
+        }
+      })
+      .on(RoomEvent.ChatMessage, (msg: any, participant: any) => {
+        const isAgent =
+          participant?.kind === ParticipantKind.AGENT ||
+          (participant?.identity && participant.identity !== room.localParticipant.identity);
+        if (msg?.message) {
+          onChatMessageRef.current(isAgent ? "agent" : "user", msg.message);
+        }
+      })
       .on(RoomEvent.ParticipantConnected, (p) => {
         if (p.kind === ParticipantKind.AGENT) {
           applyAgentState(p.attributes["lk.agent.state"]);
