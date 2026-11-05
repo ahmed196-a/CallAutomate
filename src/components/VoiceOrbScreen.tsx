@@ -758,7 +758,8 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     });
 
     const L = THREE.MathUtils.lerp;
-    const clock = new THREE.Clock();
+    const timer = typeof (THREE as any).Timer === "function" ? new (THREE as any).Timer() : null;
+    const startTime = performance.now();
     let sc = 1;
 
     // Main 3D Render Loop
@@ -766,7 +767,8 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
       animFrameRef.current = requestAnimationFrame(loop);
       if (document.hidden) return;
 
-      const t = clock.getElapsedTime();
+      if (timer) timer.update();
+      const t = timer ? timer.getElapsed() : (performance.now() - startTime) * 0.001;
       const nowMs = performance.now();
       const isSpeaking = speakingRef.current;
       const isMutedNow = mutedRef.current;
@@ -921,6 +923,9 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
       renderer.domElement.removeEventListener("pointermove", onCanvasPointerMove);
 
       // Clean disposal
+      if (timer && typeof (timer as any).dispose === "function") {
+        (timer as any).dispose();
+      }
       renderer.dispose();
       wrap.innerHTML = "";
     };
