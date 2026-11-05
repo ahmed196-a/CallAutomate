@@ -1,63 +1,76 @@
 /* ==========================================================================
-   Full-Screen Voice Orb Interactive Screen & Floating HUD (CallAutomate)
-   Carefully blended with the CallAutomate Website Design System
+   Voice Screen — light studio theme (matches the robot hero)
+   Palette: lavender mist #f4f5fd / #dde2f5 · ink #0f172a · white pills
+            brand blue #1e4fd8 → #2e8fed · sky #38bdf8 · live green #10b981 · red #ef4444
    ========================================================================== */
 
-/* --------------------------------------------------------------------------
-   CURSOR FIX: Ensure Website's Custom Cursor (#cur & #cdt) appears on top
-   -------------------------------------------------------------------------- */
+/* Keep the site's custom cursor above the overlay */
 #cur, #cdt {
   z-index: 100005 !important;
   display: block !important;
 }
 
-/* --------------------------------------------------------------------------
-   1. Full Screen Main Container
-   -------------------------------------------------------------------------- */
+/* 1. Container ------------------------------------------------------------ */
 .vo-fullscreen {
+  --vo-gutter: 40px;
+  --blue: linear-gradient(100deg, #1e4fd8 0%, #2e8fed 100%);
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  max-height: 100vh;
-  max-height: 100dvh;
   z-index: 99999;
-  background-color: #070b16;
-  background-image:
-    radial-gradient(640px 420px at 20% 25%, rgba(37, 99, 235, 0.22), transparent 70%),
-    radial-gradient(640px 420px at 80% 20%, rgba(56, 189, 248, 0.16), transparent 70%),
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 100% 56px, 56px 100%;
-  color: #f1f5f9;
-  font-family: "Work Sans", system-ui, -apple-system, sans-serif;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   overflow: hidden;
-  animation: voFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  background:
+    radial-gradient(900px 500px at 15% 0%, rgba(46, 115, 237, 0.14), transparent 70%),
+    radial-gradient(800px 500px at 90% 10%, rgba(56, 189, 248, 0.14), transparent 70%),
+    linear-gradient(to bottom, #f6f7fe 0%, #e9ecfa 60%, #dde2f5 100%);
+  color: #0f172a;
+  font-family: "Work Sans", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+  animation: voFadeIn 0.35s ease both;
 }
 
-/* --------------------------------------------------------------------------
-   2. Top Screen Header / Navbar
-   -------------------------------------------------------------------------- */
+.vo-bg-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Outfit, "Work Sans", sans-serif;
+  font-weight: 900;
+  font-size: clamp(4rem, 14vw, 13rem);
+  letter-spacing: -0.05em;
+  line-height: 1;
+  white-space: nowrap;
+  color: #2e73ed;
+  opacity: 0.07;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+/* 2. Header --------------------------------------------------------------- */
 .vo-screen-header {
-  width: 100%;
-  padding: 16px 36px;
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
-  z-index: 20;
+  gap: 12px;
+  width: min(1400px, calc(100% - 2 * var(--vo-gutter)));
+  margin: calc(16px + env(safe-area-inset-top, 0px)) auto 4px;
+  padding: 8px 0;
 }
 
-.vo-header-left {
+.vo-header-left,
+.vo-header-right {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .vo-brand {
@@ -65,386 +78,34 @@
   align-items: center;
   gap: 10px;
   font-family: Outfit, sans-serif;
-  font-size: 20px;
-  font-weight: 600;
-  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
   letter-spacing: -0.02em;
+  color: #0f172a;
   user-select: none;
 }
 
 .vo-brand-img {
-  width: 32px;
-  height: 32px;
-  display: block;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
-  filter: drop-shadow(0 2px 8px rgba(56, 189, 248, 0.4));
-}
-
-.vo-header-divider {
-  width: 1px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.16);
+  display: block;
 }
 
 .vo-session-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px;
+  padding: 7px 14px;
   border-radius: 999px;
-  background: rgba(46, 115, 237, 0.1);
-  border: 1px solid rgba(46, 115, 237, 0.28);
+  background: rgba(46, 115, 237, 0.08);
   font-family: Outfit, sans-serif;
   font-size: 13px;
-  font-weight: 500;
-  color: #93c5fd;
+  font-weight: 600;
+  color: #1e4fd8;
 }
 
 .vo-session-pill i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-  animation: voDotPulse 1.8s infinite;
-}
-
-.vo-header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.vo-nav-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 18px;
-  border-radius: 999px;
-  font-family: Outfit, sans-serif;
-  font-size: 13.5px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  border: 1px solid transparent;
-}
-
-.vo-nav-btn.view {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.14);
-  color: #f1f5f9;
-}
-
-.vo-nav-btn.view:hover {
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.25);
-  transform: translateY(-1px);
-}
-
-.vo-nav-btn.end {
-  background: #ef4444;
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 4px 18px rgba(239, 68, 68, 0.45);
-}
-
-.vo-nav-btn.end:hover {
-  background: #dc2626;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 22px rgba(220, 38, 38, 0.6);
-}
-
-/* --------------------------------------------------------------------------
-   3. Main Body Grid: Left = Orb + Controls, Right = Live Conversation Card
-   -------------------------------------------------------------------------- */
-.vo-screen-body {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  max-width: 1380px;
-  margin: 0 auto;
-  padding: 10px 48px;
-  display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
-  gap: 40px;
-  align-items: center;
-  overflow: hidden;
-  z-index: 10;
-}
-
-/* Left Column */
-.vo-orb-column {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  height: 100%;
-  min-height: 0;
-}
-
-/* Orb Container */
-.vo-orb-wrapper {
-  position: relative;
-  width: 320px;
-  height: 320px;
-  margin: 0 auto 12px;
-  display: grid;
-  place-items: center;
-  animation: voFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-  transform: translate(calc(var(--mx, 0) * 16px), calc(var(--my, 0) * 14px));
-  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* Orbital Ring around Orb */
-.vo-orbital-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 440px;
-  height: 145px;
-  margin: -72px 0 0 -220px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(56, 189, 248, 0.36);
-  box-shadow: 0 0 25px rgba(37, 99, 235, 0.3), inset 0 0 20px rgba(56, 189, 248, 0.15);
-  transform: rotate(-16deg);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.vo-orbit-dot {
-  position: absolute;
-  border-radius: 50%;
-  background: #38bdf8;
-  box-shadow: 0 0 10px #38bdf8, 0 0 20px #2563eb;
-}
-
-.vo-orbit-dot.dot-1 {
-  width: 7px;
-  height: 7px;
-  top: 15%;
-  left: 12%;
-}
-
-.vo-orbit-dot.dot-2 {
-  width: 9px;
-  height: 9px;
-  top: 48%;
-  right: -4px;
-}
-
-.vo-orbit-dot.dot-3 {
-  width: 6px;
-  height: 6px;
-  bottom: 8%;
-  left: 36%;
-}
-
-.vo-orb-glow {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 420px;
-  height: 420px;
-  margin: -210px 0 0 -210px;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.5) 0%, rgba(56, 189, 248, 0.15) 45%, transparent 70%);
-  opacity: calc(0.4 + var(--lvl, 0) * 0.8);
-  transform: scale(calc(1 + var(--lvl, 0) * 0.22));
-  transition: opacity 0.12s ease, transform 0.12s ease;
-}
-
-.vo-orb-canvas {
-  position: relative;
-  width: 320px;
-  height: 320px;
-  display: block;
-  z-index: 2;
-  filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 35px rgba(56, 189, 248, 0.4));
-}
-
-/* Center Wave Inside Orb */
-.vo-orb-center-wave {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  z-index: 4;
-  pointer-events: none;
-}
-
-.vo-orb-center-wave span {
-  display: block;
-  width: 3.5px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 16px #38bdf8;
-  animation: voCenterWave 1.4s ease-in-out infinite;
-}
-
-.vo-orb-center-wave span:nth-child(1) { height: 12px; animation-delay: 0s; }
-.vo-orb-center-wave span:nth-child(2) { height: 26px; animation-delay: 0.2s; }
-.vo-orb-center-wave span:nth-child(3) { height: 38px; animation-delay: 0.4s; }
-.vo-orb-center-wave span:nth-child(4) { height: 24px; animation-delay: 0.15s; }
-.vo-orb-center-wave span:nth-child(5) { height: 14px; animation-delay: 0.35s; }
-
-@keyframes voCenterWave {
-  0%, 100% { transform: scaleY(0.4); opacity: 0.7; }
-  50% { transform: scaleY(1.15); opacity: 1; }
-}
-
-/* Status Block */
-.vo-status-block {
-  margin-bottom: 14px;
-}
-
-.vo-status-title {
-  font-family: Outfit, system-ui, sans-serif;
-  font-size: 26px;
-  font-weight: 600;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-  margin: 0 0 4px 0;
-}
-
-.vo-status-sub {
-  font-family: "Work Sans", sans-serif;
-  font-size: 14px;
-  color: #94a3b8;
-  margin: 0;
-  max-width: 420px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Call Control Bar */
-.vo-callbar {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: rgba(14, 20, 42, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 999px;
-  padding: 8px 16px;
-  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(46, 115, 237, 0.2);
-  animation: voFadeUp 0.6s ease 0.12s both;
-}
-
-.vo-round-btn {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.vo-round-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.28);
-}
-
-.vo-round-btn.muted {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: rgba(239, 68, 68, 0.5);
-  color: #f87171;
-}
-
-.vo-round-btn.end {
-  background: #ef4444;
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.5);
-}
-
-.vo-round-btn.end:hover {
-  background: #dc2626;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.65);
-}
-
-.vo-round-btn svg {
-  width: 20px;
-  height: 20px;
-}
-
-/* 5-Bar Waveform */
-.vo-wave {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 38px;
-  min-width: 90px;
-  justify-content: center;
-}
-
-.vo-wave span {
-  display: block;
-  width: 4px;
-  height: 16px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #38bdf8, #2563eb);
-  transition: height 0.12s cubic-bezier(0.3, 0.7, 0.4, 1);
-}
-
-/* Right Column: Embedded Live Conversation Card */
-.vo-chat-column {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  height: 100%;
-  max-height: 480px;
-  min-width: 0;
-}
-
-.vo-chat-card {
-  background: rgba(13, 20, 39, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 22px;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(46, 115, 237, 0.15);
-  display: flex;
-  flex-direction: column;
-  height: 440px;
-  max-height: 100%;
-  overflow: hidden;
-  animation: voFadeUp 0.6s ease 0.16s both;
-}
-
-.vo-chat-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-  flex-shrink: 0;
-}
-
-.vo-chat-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: Outfit, sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.vo-live-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -453,312 +114,313 @@
   animation: voDotPulse 1.8s infinite;
 }
 
-.vo-agent-badge {
-  font-family: Outfit, sans-serif;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 3px 10px;
-  border-radius: 999px;
-}
-
-.vo-chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  scroll-behavior: smooth;
-}
-
-.vo-chat-row {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  max-width: 92%;
-  animation: voFadeUp 0.3s ease both;
-}
-
-.vo-chat-row.agent {
-  align-self: flex-start;
-}
-
-.vo-chat-row.user {
-  align-self: flex-end;
-  flex-direction: row-reverse;
-}
-
-.vo-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.vo-avatar.agent {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #cbd5e1;
-}
-
-.vo-avatar.user {
-  background: rgba(37, 99, 235, 0.28);
-  border: 1px solid rgba(37, 99, 235, 0.5);
-  color: #93c5fd;
-}
-
-.vo-avatar svg {
-  width: 17px;
-  height: 17px;
-}
-
-.vo-bubble-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.vo-bubble {
-  padding: 12px 16px;
-  border-radius: 18px;
-  font-size: 14px;
-  line-height: 1.5;
-  font-family: "Work Sans", sans-serif;
-  word-break: break-word;
-}
-
-.vo-bubble.agent {
-  background: rgba(24, 34, 68, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-top-left-radius: 4px;
-  color: #f1f5f9;
-}
-
-.vo-bubble.user {
-  background: #2563eb;
-  border-top-right-radius: 4px;
-  color: #ffffff;
-}
-
-.vo-bubble-time {
-  font-size: 11px;
-  color: #64748b;
-  padding: 0 4px;
-}
-
-.vo-chat-row.user .vo-bubble-time {
-  text-align: right;
-}
-
-/* Typing Indicator Dots */
-.typing-dots {
-  display: flex;
-  gap: 5px;
+.vo-nav-btn {
+  display: inline-flex;
   align-items: center;
-  padding: 12px 18px !important;
-}
-
-.typing-dots span {
-  display: block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #94a3b8;
-  animation: voBouncingDots 1.4s infinite ease-in-out both;
-}
-
-.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
-.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
-.typing-dots span:nth-child(3) { animation-delay: 0s; }
-
-@keyframes voBouncingDots {
-  0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
-  40% { transform: scale(1); opacity: 1; }
-}
-
-/* Chat Input Bar */
-.vo-chat-card-input {
-  display: flex;
   gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-  flex-shrink: 0;
-}
-
-.vo-chat-card-input input {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 10px 20px;
   border-radius: 999px;
-  padding: 9px 16px;
-  color: #fff;
+  border: 0;
+  font-family: Outfit, sans-serif;
   font-size: 13.5px;
-  outline: none;
-  font-family: inherit;
-  transition: all 0.2s ease;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
-.vo-chat-card-input input:focus {
-  border-color: #38bdf8;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.vo-chat-card-input button {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #2563eb;
+.vo-nav-btn.view {
+  background: var(--blue);
   color: #fff;
+  box-shadow: 0 8px 20px rgba(30, 79, 216, 0.35);
+}
+.vo-nav-btn.view:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(30, 79, 216, 0.45); }
+
+.vo-nav-btn.end {
+  background: #fff;
+  color: #dc2626;
+  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.25);
+}
+.vo-nav-btn.end:hover { background: #ef4444; color: #fff; }
+
+/* 3. Body ----------------------------------------------------------------- */
+.vo-screen-body {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 12px var(--vo-gutter);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+/* Robot stage */
+.vo-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 0;
+  padding: 8px 0 4px;
+}
+
+.vo-stage-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.vo-status-block {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  pointer-events: none;
+}
+
+.vo-status-title {
+  margin: 0 0 2px;
+  font-family: Outfit, sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.vo-status-sub {
+  margin: 0 auto;
+  max-width: min(420px, 80vw);
+  font-size: 14px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Call bar */
+.vo-callbar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(46, 115, 237, 0.18), 0 0 0 1px rgba(46, 115, 237, 0.06);
+}
+
+.vo-round-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   border: 0;
   display: grid;
   place-items: center;
+  background: #eef2ff;
+  color: #1e4fd8;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.vo-round-btn:hover { background: #dbe4ff; }
+.vo-round-btn svg { width: 19px; height: 19px; }
+
+.vo-round-btn.muted {
+  background: #ef4444;
+  color: #fff;
 }
 
-.vo-chat-card-input button:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
+.vo-round-btn.end {
+  background: #ef4444;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(239, 68, 68, 0.4);
 }
+.vo-round-btn.end:hover { background: #dc2626; }
 
-.vo-chat-card-input button svg {
-  width: 16px;
-  height: 16px;
-}
-
-/* --------------------------------------------------------------------------
-   4. Bottom Screen Footer: Quick Actions / Chips Row
-   -------------------------------------------------------------------------- */
-.vo-screen-footer {
-  width: 100%;
-  padding: 14px 48px 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(7, 11, 22, 0.6);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  flex-shrink: 0;
-  z-index: 20;
-}
-
-.vo-quick-header {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-bottom: 10px;
-}
-
-.vo-quick-title {
+.vo-wave {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-family: Outfit, sans-serif;
-  font-size: 15px;
+  justify-content: center;
+  gap: 5px;
+  height: 40px;
+  min-width: 84px;
+}
+
+.vo-wave span {
+  display: block;
+  width: 4px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--blue);
+  transition: height 0.12s cubic-bezier(0.3, 0.7, 0.4, 1);
+}
+
+/* Live captions — words appear on the stage as the agent / user speaks */
+.vo-captions {
+  --cap-size: clamp(21px, 2.6vw, 32px);
+  position: absolute;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: min(840px, 94%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 0.7s ease;
+}
+.vo-captions.idle { opacity: 0; }
+
+.vo-cap {
+  max-width: 100%;
+  transition: opacity 0.5s ease;
+  animation: voCapIn 0.4s ease both;
+}
+.vo-cap.old { opacity: 0.3; }
+.vo-cap.gone { opacity: 0; }
+
+/* Agent: big, confident type straight on the stage */
+.vo-cap.agent {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  max-height: calc(var(--cap-size) * 1.3 * 3);
+}
+.vo-cap.agent.old {
+  --cap-size: clamp(15px, 1.7vw, 20px);
+  max-height: calc(var(--cap-size) * 1.3 * 2);
+}
+.vo-cap.agent .vo-cap-text {
+  margin: 0;
+  font-family: Outfit, "Work Sans", sans-serif;
+  font-weight: 700;
+  font-size: var(--cap-size);
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+  color: #0f172a;
+  text-shadow: 0 0 22px rgba(246, 247, 254, 0.95), 0 0 6px rgba(246, 247, 254, 0.9);
+  transition: font-size 0.4s ease;
+}
+
+/* User: compact white pill with a blue mic badge */
+.vo-cap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 7px 18px 7px 8px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(46, 115, 237, 0.14), 0 0 0 1px rgba(46, 115, 237, 0.08);
+}
+.vo-cap-badge {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--blue);
+  color: #fff;
+}
+.vo-cap-badge svg { width: 14px; height: 14px; }
+.vo-cap.user .vo-cap-text {
+  margin: 0;
+  text-align: left;
+  font-size: clamp(13.5px, 1.4vw, 15.5px);
   font-weight: 600;
-  color: #f1f5f9;
+  line-height: 1.4;
+  color: #1e4fd8;
 }
 
-.vo-sparkle-icon {
-  width: 15px;
-  height: 15px;
-  color: #38bdf8;
+.vo-cap-text .w {
+  display: inline-block;
+  animation: voWordIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.vo-quick-sub {
-  font-size: 12.5px;
-  color: #94a3b8;
-  font-family: "Work Sans", sans-serif;
+@keyframes voCapIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes voWordIn {
+  from { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+  to { opacity: 1; transform: none; filter: blur(0); }
+}
+
+/* 4. Quick actions -------------------------------------------------------- */
+.vo-screen-footer {
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 10px var(--vo-gutter) calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
 .vo-chips-row {
   display: flex;
   gap: 10px;
   overflow-x: auto;
-  overscroll-behavior-x: contain;
-  padding-bottom: 4px;
+  padding: 4px 0;
   scrollbar-width: none;
-  -ms-overflow-style: none;
 }
-
-.vo-chips-row::-webkit-scrollbar {
-  display: none;
-}
+.vo-chips-row::-webkit-scrollbar { display: none; }
 
 .vo-action-chip {
-  background: rgba(16, 24, 50, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  padding: 10px 16px;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: #0f172a;
   font-family: Outfit, sans-serif;
   font-size: 13.5px;
-  font-weight: 500;
-  color: #cbd5e1;
+  font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
+  box-shadow: 0 6px 18px rgba(46, 115, 237, 0.1), 0 0 0 1px rgba(46, 115, 237, 0.08);
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
+.vo-action-chip:hover { background: var(--blue); color: #fff; transform: translateY(-1px); }
 
-.vo-action-chip:hover {
-  border-color: #38bdf8;
-  background: rgba(37, 99, 235, 0.22);
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+.vo-chip-icon { display: flex; align-items: center; color: #2e73ed; }
+.vo-action-chip:hover .vo-chip-icon { color: #fff; }
+
+/* Keyboard focus */
+.vo-fullscreen button:focus-visible,
+.vo-docked-hud button:focus-visible {
+  outline: 2px solid #2e73ed;
+  outline-offset: 2px;
 }
+.vo-docked-hud button:focus-visible { outline-color: #38bdf8; }
 
-.vo-chip-icon {
-  display: flex;
-  align-items: center;
-  color: #38bdf8;
-}
-
-.vo-chip-chevron {
-  width: 14px;
-  height: 14px;
-  color: #64748b;
-  margin-left: 2px;
-  transition: transform 0.2s ease;
-}
-
-.vo-action-chip:hover .vo-chip-chevron {
-  transform: translateX(2px);
-  color: #38bdf8;
-}
-
-/* --------------------------------------------------------------------------
-   5. FLOATING DOCKED HUD (When viewing/navigating website)
-   -------------------------------------------------------------------------- */
+/* 5. Docked HUD ----------------------------------------------------------- */
 .vo-docked-hud {
   position: fixed;
-  bottom: 24px;
   right: 24px;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   z-index: 99999;
   display: flex;
   align-items: center;
   gap: 14px;
-  background: rgba(17, 22, 42, 0.94);
-  border: 1px solid rgba(56, 189, 248, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 999px;
-  padding: 8px 14px 8px 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65), 0 0 35px rgba(46, 115, 237, 0.35);
-  animation: voPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  color: #f1f5f9;
-  font-family: "Work Sans", system-ui, sans-serif;
   max-width: calc(100vw - 48px);
   box-sizing: border-box;
+  padding: 8px 12px 8px 10px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #fff;
+  font-family: "Work Sans", system-ui, sans-serif;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.4), 0 0 0 1px rgba(56, 189, 248, 0.25);
+  animation: voPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .vo-docked-left {
@@ -769,49 +431,35 @@
 }
 
 .vo-mini-orb-link {
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
+  background: #fff;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   border-radius: 50%;
-  position: relative;
+  overflow: hidden;
   display: grid;
   place-items: center;
-  overflow: hidden;
-  border: 2px solid #38bdf8;
-  box-shadow: 0 0 18px rgba(56, 189, 248, 0.6);
-  animation: voMiniPulse 2.4s ease-in-out infinite;
+  box-shadow: 0 0 0 2px #38bdf8, 0 0 14px rgba(56, 189, 248, 0.5);
   flex-shrink: 0;
 }
+.vo-mini-orb-link img { width: 100%; height: 100%; object-fit: cover; }
 
-.vo-mini-orb-link img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.vo-docked-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
+.vo-docked-info { display: flex; flex-direction: column; min-width: 0; }
 
 .vo-docked-title {
-  font-size: 13.5px;
-  font-weight: 600;
   font-family: Outfit, sans-serif;
-  color: #f1f5f9;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .vo-docked-sub {
-  font-size: 12px;
-  color: #94a3b8;
   max-width: 220px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -825,252 +473,145 @@
   padding: 0 6px;
   flex-shrink: 0;
 }
-
 .vo-docked-wave span {
   display: block;
   width: 4px;
   height: 24px;
-  transform: scaleY(0.25);
-  transform-origin: center;
   border-radius: 999px;
   background: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+  transform: scaleY(0.25);
+  transform-origin: center;
   transition: transform 0.1s ease;
   will-change: transform;
 }
 
-.vo-docked-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
+.vo-docked-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 .vo-docked-btn {
   width: 38px;
   height: 38px;
   min-width: 38px;
+  border: 0;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
   display: grid;
   place-items: center;
-  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.2s ease;
 }
+.vo-docked-btn:hover { background: rgba(255, 255, 255, 0.24); }
+.vo-docked-btn.end { background: #ef4444; }
+.vo-docked-btn.end:hover { background: #dc2626; }
+.vo-docked-btn svg { width: 16px; height: 16px; }
 
-.vo-docked-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-
-.vo-docked-btn.end {
-  background: #dc2626;
-  border-color: transparent;
-}
-
-.vo-docked-btn.end:hover {
-  background: #b91c1c;
-}
-
-.vo-docked-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
-/* Spotlight Glow */
+/* Spotlight on the website sections the agent points at */
 .spot {
-  box-shadow: 0 0 0 3px #38bdf8, 0 0 45px rgba(46, 115, 237, 0.65) !important;
+  box-shadow: 0 0 0 3px #38bdf8, 0 0 40px rgba(46, 115, 237, 0.5) !important;
   border-radius: 24px !important;
-  transition: box-shadow 0.4s ease, border-color 0.4s ease !important;
+  transition: box-shadow 0.4s ease !important;
 }
 
 /* Animations */
-@keyframes voFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes voFadeUp {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: none; }
-}
-
+@keyframes voFadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes voPop {
-  from { opacity: 0; transform: scale(0.9) translateY(14px); }
+  from { opacity: 0; transform: scale(0.92) translateY(12px); }
   to { opacity: 1; transform: none; }
 }
-
-@keyframes voMiniPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 16px rgba(46, 115, 237, 0.5); }
-  50% { transform: scale(1.08); box-shadow: 0 0 28px rgba(56, 189, 248, 0.85); }
-}
-
 @keyframes voDotPulse {
-  50% { box-shadow: 0 0 0 6px transparent; opacity: 0.6; }
   0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+@keyframes voBouncingDots {
+  0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
 }
 
-/* Responsive Breakpoints */
-@media (max-width: 1040px) {
-  .vo-screen-header {
-    padding: 14px 24px;
-  }
-  .vo-screen-body {
-    padding: 10px 24px;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-  }
-  .vo-screen-footer {
-    padding: 12px 24px 16px;
-  }
-  .vo-orbital-ring {
-    width: 360px;
-    height: 120px;
-    margin: -60px 0 0 -180px;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .vo-fullscreen, .vo-docked-hud, .vo-cap, .vo-cap-text .w { animation: none; }
+  .vo-session-pill i { animation: none; }
 }
 
+/* Responsive -------------------------------------------------------------- */
+/* Laptops / small desktops */
+@media (max-width: 1100px) {
+  .vo-fullscreen { --vo-gutter: 24px; }
+}
+
+/* Short viewports (landscape laptops, split windows) */
+@media (max-height: 720px) and (min-width: 861px) {
+  .vo-screen-header { margin-top: 10px; padding-top: 6px; padding-bottom: 6px; }
+  .vo-status-title { font-size: 20px; }
+  .vo-status-sub { font-size: 13px; }
+  .vo-round-btn { width: 40px; height: 40px; }
+  .vo-wave { height: 34px; }
+  .vo-screen-footer { padding-bottom: 12px; }
+  .vo-captions { --cap-size: 20px; bottom: 76px; }
+}
+
+/* Tablets / phones: single column, whole screen scrolls */
 @media (max-width: 860px) {
-  .vo-fullscreen {
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  .vo-screen-header {
-    padding: 12px 18px;
-  }
+  .vo-fullscreen { --vo-gutter: 16px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .vo-session-pill { display: none; }
+  .vo-screen-header { margin-top: calc(12px + env(safe-area-inset-top, 0px)); }
   .vo-screen-body {
-    grid-template-columns: 1fr;
-    overflow-y: visible;
-    gap: 32px;
-    padding: 14px 18px;
+    flex: none;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
-  .vo-chat-column {
-    max-height: 400px;
-  }
-  .vo-screen-footer {
-    padding: 12px 18px 20px;
-  }
-  .vo-orbital-ring {
-    width: 320px;
-    height: 110px;
-    margin: -55px 0 0 -160px;
-  }
-
-  /* Docked HUD tablet adjustments */
-  .vo-docked-hud {
-    right: 16px;
-    bottom: 16px;
-    max-width: calc(100vw - 32px);
-    gap: 10px;
-    padding: 7px 12px 7px 14px;
-  }
-  .vo-docked-sub {
-    max-width: 150px;
-  }
+  .vo-stage { height: clamp(440px, 64dvh, 640px); }
+  .vo-docked-hud { right: 16px; max-width: calc(100vw - 32px); gap: 10px; }
+  .vo-docked-sub { max-width: 150px; }
 }
 
+/* Phones */
 @media (max-width: 640px) {
+  .vo-brand { font-size: 17px; }
+  .vo-brand-img { width: 32px; height: 32px; }
+  .vo-nav-btn { padding: 10px 14px; font-size: 13px; }
+  .vo-status-title { font-size: 21px; }
+  .vo-callbar { gap: 10px; padding: 6px 8px; }
+  .vo-wave { min-width: 64px; }
+  .vo-captions { bottom: 76px; }
+
   .vo-docked-hud {
     left: 12px;
     right: 12px;
-    bottom: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
     max-width: calc(100vw - 24px);
-    width: auto;
     justify-content: space-between;
-    padding: 6px 10px;
-    gap: 8px;
-    border-radius: 999px;
-  }
-  .vo-docked-left {
-    flex: 1 1 auto;
-    min-width: 0;
     gap: 8px;
   }
-  .vo-mini-orb-link {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-  }
-  .vo-docked-title {
-    font-size: 12.5px;
-  }
-  .vo-docked-sub {
-    font-size: 11px;
-    max-width: 110px;
-  }
-  .vo-docked-btn {
-    width: 34px;
-    height: 34px;
-    min-width: 34px;
-  }
-  .vo-docked-btn svg {
-    width: 15px;
-    height: 15px;
-  }
-  .spot {
-    box-shadow: 0 0 0 2px #38bdf8, 0 0 28px rgba(46, 115, 237, 0.5) !important;
-    border-radius: 18px !important;
-  }
+  .vo-docked-left { flex: 1 1 auto; gap: 8px; }
+  .vo-docked-sub { font-size: 11px; max-width: 110px; }
+  .vo-docked-btn { width: 34px; height: 34px; min-width: 34px; }
+  .spot { box-shadow: 0 0 0 2px #38bdf8, 0 0 24px rgba(46, 115, 237, 0.45) !important; border-radius: 18px !important; }
 }
 
+/* Small phones: icon-only header buttons */
 @media (max-width: 480px) {
-  .vo-screen-header {
-    padding: 10px 14px;
-  }
-  .vo-screen-body {
-    padding: 10px 14px;
-    gap: 20px;
-  }
-  .vo-orb-canvas-wrap {
-    width: 240px;
-    height: 240px;
-  }
-  .vo-center-soundwave {
-    width: 130px;
-    height: 32px;
-  }
-  .vo-orbital-ring {
-    width: 260px;
-    height: 90px;
-    margin: -45px 0 0 -130px;
-  }
-  .vo-screen-footer {
-    padding: 10px 14px 16px;
-  }
-  .vo-action-chip {
-    padding: 7px 12px;
-    font-size: 12px;
-  }
-  .vo-docked-hud {
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    max-width: calc(100vw - 16px);
-    padding: 6px 8px;
-    gap: 6px;
-  }
-  .vo-docked-sub {
-    display: none;
-  }
-  .vo-docked-wave {
-    display: none;
-  }
-  .vo-docked-controls {
-    gap: 5px;
-  }
-  .vo-docked-btn {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-  }
-  .vo-docked-btn svg {
-    width: 14px;
-    height: 14px;
-  }
-  .spot {
-    box-shadow: 0 0 0 2px #38bdf8, 0 0 18px rgba(46, 115, 237, 0.45) !important;
-    border-radius: 14px !important;
-  }
+  .vo-screen-header { padding: 6px 0; }
+  .vo-nav-btn span { display: none; }
+  .vo-nav-btn { width: 40px; height: 40px; padding: 0; justify-content: center; }
+  .vo-action-chip { padding: 8px 14px; font-size: 12.5px; }
+  .vo-docked-sub, .vo-docked-wave { display: none; }
+  .vo-docked-controls { gap: 5px; }
+  .vo-bg-text { font-size: 18vw; }
 }
+
+.mark {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #7c3aed, #2e73ed);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.mark b { display: flex; gap: 3px; }
+.mark i { width: 4px; height: 10px; border-radius: 2px; background: #fff; }
+.vo-brand .mark { width: 36px; height: 36px; }
+.hide { display: none !important; }
