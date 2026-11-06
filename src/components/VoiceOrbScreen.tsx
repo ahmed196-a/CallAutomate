@@ -986,11 +986,34 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointermove", onCanvasPointerMove);
 
-      // Clean disposal
+      // Clean disposal of Three.js resources
+      scene.traverse((obj) => {
+        if ((obj as THREE.Mesh).isMesh) {
+          const mesh = obj as THREE.Mesh;
+          if (mesh.geometry) mesh.geometry.dispose();
+          if (mesh.material) {
+            if (Array.isArray(mesh.material)) {
+              mesh.material.forEach((mat) => {
+                if ((mat as any).map) (mat as any).map.dispose();
+                mat.dispose();
+              });
+            } else {
+              if ((mesh.material as any).map) (mesh.material as any).map.dispose();
+              mesh.material.dispose();
+            }
+          }
+        }
+      });
+      shadowTexture.dispose();
+      tex.dispose();
+
       if (timer && typeof (timer as any).dispose === "function") {
         (timer as any).dispose();
       }
       renderer.dispose();
+      if (typeof renderer.forceContextLoss === "function") {
+        renderer.forceContextLoss();
+      }
       wrap.innerHTML = "";
     };
   }, [isOpen, analyserRef, audioDataRef, mutedRef, speakingRef]);
