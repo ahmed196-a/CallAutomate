@@ -37,6 +37,8 @@ const SLOT_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps) {
   const [viewMode, setViewMode] = useState<"fullscreen" | "docked">("fullscreen");
+  const viewModeRef = useRef<"fullscreen" | "docked">(viewMode);
+  viewModeRef.current = viewMode;
   const [, setUserName] = useState<string>("");
   const [inputText, setInputText] = useState<string>("");
 
@@ -966,7 +968,9 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
           : 0.2 + lvl * 1.4;
       });
 
-      renderer.render(scene, camera);
+      if (viewModeRef.current !== "docked") {
+        renderer.render(scene, camera);
+      }
     }
 
     loop();
