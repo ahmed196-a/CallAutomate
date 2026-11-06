@@ -4,10 +4,13 @@
             brand blue #1e4fd8 → #2e8fed · sky #38bdf8 · live green #10b981 · red #ef4444
    ========================================================================== */
 
-/* Keep the site's custom cursor above the overlay */
-#cur, #cdt {
-  z-index: 100005 !important;
-  display: block !important;
+/* Keep the site's custom cursor above the overlay on fine-pointer/desktop */
+@media (pointer: fine) {
+  body.cn #cur,
+  body.cn #cdt {
+    z-index: 100005 !important;
+    display: block !important;
+  }
 }
 
 /* 1. Container ------------------------------------------------------------ */
