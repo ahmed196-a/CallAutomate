@@ -8,31 +8,35 @@ import { scrollScheduler, GeometryCache } from "@/lib/scrollScheduler";
 
 const LOGO_SRC = "/logo-removebg-preview.png";
 
+declare global {
+  interface Window {
+    __isVoiceOrbOpen?: boolean;
+    stopHeroOrb?: () => void;
+    startHeroOrb?: () => void;
+    __openVoiceOrb?: () => void;
+    THREE?: typeof THREE;
+  }
+}
+
 export default function Home() {
   const [isVoiceOrbOpen, setIsVoiceOrbOpen] = useState(false);
 
   useEffect(() => {
-    (window as any).__isVoiceOrbOpen = isVoiceOrbOpen;
+    window.__isVoiceOrbOpen = isVoiceOrbOpen;
     if (isVoiceOrbOpen) {
-      if (typeof (window as any).stopHeroOrb === "function") {
-        (window as any).stopHeroOrb();
-      }
+      window.stopHeroOrb?.();
     } else {
-      if (typeof (window as any).startHeroOrb === "function") {
-        (window as any).startHeroOrb();
-      }
+      window.startHeroOrb?.();
     }
   }, [isVoiceOrbOpen]);
 
   useEffect(() => {
     // Ensure window.THREE is available
     if (typeof window !== "undefined") {
-      (window as any).THREE = THREE;
-      (window as any).__openVoiceOrb = () => {
-        (window as any).__isVoiceOrbOpen = true;
-        if (typeof (window as any).stopHeroOrb === 'function') {
-          (window as any).stopHeroOrb();
-        }
+      window.THREE = THREE;
+      window.__openVoiceOrb = () => {
+        window.__isVoiceOrbOpen = true;
+        window.stopHeroOrb?.();
         setIsVoiceOrbOpen(true);
       };
     }
@@ -847,13 +851,13 @@ export default function Home() {
       let simTime = 0;
 
       function startLpIfNeeded() {
-        if (isOrbInView && !document.hidden && !R && !lpRafId && !(window as any).__isVoiceOrbOpen) {
+        if (isOrbInView && !document.hidden && !R && !lpRafId && !window.__isVoiceOrbOpen) {
           lastTs = null;
           lpRafId = requestAnimationFrame(lp);
         }
       }
-      (window as any).startHeroOrb = startLpIfNeeded;
-      (window as any).stopHeroOrb = stopLp;
+      window.startHeroOrb = startLpIfNeeded;
+      window.stopHeroOrb = stopLp;
 
       function stopLp() {
         if (lpRafId) {
@@ -893,7 +897,7 @@ export default function Home() {
       r.render(sc, cam);
 
       function lp(ts: number) {
-        if (!isOrbInView || document.hidden || R || (window as any).__isVoiceOrbOpen) {
+        if (!isOrbInView || document.hidden || R || window.__isVoiceOrbOpen) {
           lpRafId = null;
           lastTs = null;
           return;
@@ -4721,11 +4725,9 @@ export default function Home() {
       <VoiceOrbScreen
         isOpen={isVoiceOrbOpen}
         onClose={() => {
-          (window as any).__isVoiceOrbOpen = false;
+          window.__isVoiceOrbOpen = false;
           setIsVoiceOrbOpen(false);
-          if (typeof (window as any).startHeroOrb === 'function') {
-            (window as any).startHeroOrb();
-          }
+          window.startHeroOrb?.();
         }}
       />
     </>
