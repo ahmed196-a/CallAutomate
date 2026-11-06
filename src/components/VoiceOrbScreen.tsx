@@ -869,7 +869,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
       if (isSpeaking) {
         targetLvl = 0.35 + 0.35 * Math.abs(Math.sin(t * 4.8)) * (0.6 + 0.4 * Math.sin(t * 1.9));
       } else if (analyserRef.current && audioDataRef.current && !isMutedNow) {
-        analyserRef.current.getByteFrequencyData(audioDataRef.current as unknown as Uint8Array);
+        analyserRef.current.getByteFrequencyData(audioDataRef.current as unknown as Uint8Array<ArrayBuffer>);
         let sum = 0;
         for (let i = 0; i < audioDataRef.current.length; i++) sum += audioDataRef.current[i];
         targetLvl = Math.min(1, (sum / audioDataRef.current.length / 255) * 2.8);

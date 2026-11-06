@@ -39,6 +39,9 @@ export default function SmoothScroll() {
     });
 
     globalLenis = lenis;
+    if (typeof window !== "undefined") {
+      (window as unknown as { __lenis?: Lenis | null }).__lenis = lenis;
+    }
 
     // HTML classes: disable native smooth scroll so it does not fight Lenis
     document.documentElement.classList.add("lenis");
@@ -78,6 +81,9 @@ export default function SmoothScroll() {
       lenis.off("scroll", handleScroll);
       lenis.destroy();
       globalLenis = null;
+      if (typeof window !== "undefined") {
+        (window as unknown as { __lenis?: Lenis | null }).__lenis = null;
+      }
       document.documentElement.classList.remove("lenis");
       document.documentElement.classList.remove("lenis-smooth");
     };
