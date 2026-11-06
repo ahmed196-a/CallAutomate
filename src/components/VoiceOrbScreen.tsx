@@ -196,11 +196,18 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     setTimeout(() => {
       const el = document.getElementById(id);
       if (el) {
-        el.scrollIntoView({
-          behavior: "smooth",
-          block: id.startsWith("p-") ? "center" : "start",
-          inline: "nearest",
-        });
+        const isCenter = id.startsWith("p-");
+        const lenis = getLenis();
+        if (lenis) {
+          const offset = isCenter ? -(window.innerHeight - el.offsetHeight) / 2 : 0;
+          lenis.scrollTo(el, { offset, duration: 1.1 });
+        } else {
+          el.scrollIntoView({
+            behavior: "smooth",
+            block: isCenter ? "center" : "start",
+            inline: "nearest",
+          });
+        }
         el.classList.add("spot");
         robotCtlRef.current?.lookAt(el, 3500);
         setTimeout(() => el.classList.remove("spot"), 3400);
