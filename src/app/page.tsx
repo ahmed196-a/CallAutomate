@@ -12,6 +12,19 @@ export default function Home() {
   const [isVoiceOrbOpen, setIsVoiceOrbOpen] = useState(false);
 
   useEffect(() => {
+    (window as any).__isVoiceOrbOpen = isVoiceOrbOpen;
+    if (isVoiceOrbOpen) {
+      if (typeof (window as any).stopHeroOrb === "function") {
+        (window as any).stopHeroOrb();
+      }
+    } else {
+      if (typeof (window as any).startHeroOrb === "function") {
+        (window as any).startHeroOrb();
+      }
+    }
+  }, [isVoiceOrbOpen]);
+
+  useEffect(() => {
     // Ensure window.THREE is available
     if (typeof window !== "undefined") {
       (window as any).THREE = THREE;
@@ -895,7 +908,7 @@ export default function Home() {
       r.render(sc, cam);
 
       function lp(ts: number) {
-        if (!isOrbInView || document.hidden || R) {
+        if (!isOrbInView || document.hidden || R || (window as any).__isVoiceOrbOpen) {
           lpRafId = null;
           lastTs = null;
           return;
