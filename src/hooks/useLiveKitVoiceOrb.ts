@@ -6,11 +6,14 @@ import {
   Track,
   RpcError,
   type RpcInvocationData,
+  type TranscriptionSegment,
+  type Participant,
+  type ChatMessage,
 } from "livekit-client";
 
 export interface UseLiveKitVoiceOrbProps {
   isOpen: boolean;
-  onAction: (name: string, input: any) => Promise<any>;
+  onAction: (name: string, input: Record<string, unknown>) => Promise<unknown>;
   onChatMessage: (sender: "agent" | "user", text: string) => void;
 }
 
@@ -45,12 +48,16 @@ export function useLiveKitVoiceOrb({
   const mutedRef = useRef<boolean>(false);
 
   // Latest UI-action handler reference to prevent stale closure
-  const actionHandlerRef = useRef<(name: string, input: any) => Promise<any>>(onAction);
-  actionHandlerRef.current = onAction;
+  const actionHandlerRef = useRef<(name: string, input: Record<string, unknown>) => Promise<unknown>>(onAction);
+  useEffect(() => {
+    actionHandlerRef.current = onAction;
+  }, [onAction]);
 
   // Latest chat message handler reference
   const onChatMessageRef = useRef<(sender: "agent" | "user", text: string) => void>(onChatMessage);
-  onChatMessageRef.current = onChatMessage;
+  useEffect(() => {
+    onChatMessageRef.current = onChatMessage;
+  }, [onChatMessage]);
 
   // Toggle microphone
   const toggleMute = useCallback(() => {
@@ -90,6 +97,7 @@ export function useLiveKitVoiceOrb({
     let cancelled = false;
     mutedRef.current = false;
     speakingRef.current = false;
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     setIsMuted(false);
     setCallStatus("greeting");
     setStatusText("Connecting to CallAutomate...");
@@ -100,7 +108,8 @@ export function useLiveKitVoiceOrb({
     const setupAudioAnalyser = (micTrack: MediaStreamTrack) => {
       if (cancelled || audioContextRef.current) return;
       try {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioCtx) return;
         const ctx = new AudioCtx();
         audioContextRef.current = ctx;
         const analyser = ctx.createAnalyser();
@@ -141,16 +150,16 @@ export function useLiveKitVoiceOrb({
         throw new RpcError(2, "Unauthorized orb_action caller: caller must be agent");
       }
 
-      let parsed: { name: string; input?: any };
+      let parsed: { name: string; input?: Record<string, unknown> };
       try {
         parsed = JSON.parse(data.payload);
-      } catch (_) {
+      } catch {
         throw new RpcError(1, "Bad orb_action payload");
       }
       try {
         const result = await actionHandlerRef.current(parsed.name, parsed.input || {});
         return JSON.stringify(result ?? { ok: true });
-      } catch (err) {
+      } catch (err: unknown) {
         console.error("[Voice Orb] Action failed:", err);
         return JSON.stringify({ ok: false, error: String(err) });
       }
@@ -170,7 +179,7 @@ export function useLiveKitVoiceOrb({
     });
 
     room
-      .on(RoomEvent.TranscriptionReceived, (segments: any[], participant: any) => {
+      .on(RoomEvent.TranscriptionReceived, (segments: TranscriptionSegment[], participant?: Participant) => {
         if (!segments || !segments.length) return;
         const isAgent =
           participant?.kind === ParticipantKind.AGENT ||
@@ -180,7 +189,7 @@ export function useLiveKitVoiceOrb({
           onChatMessageRef.current(isAgent ? "agent" : "user", text);
         }
       })
-      .on(RoomEvent.ChatMessage, (msg: any, participant: any) => {
+      .on(RoomEvent.ChatMessage, (msg: ChatMessage, participant?: Participant) => {
         const isAgent =
           participant?.kind === ParticipantKind.AGENT ||
           (participant?.identity && participant.identity !== room.localParticipant.identity);
@@ -246,7 +255,7 @@ export function useLiveKitVoiceOrb({
 
         try {
           await room.localParticipant.setMicrophoneEnabled(true);
-        } catch (_) {
+        } catch {
           setStatusText("Microphone permission blocked. You can type in the chat box.");
           return;
         }
@@ -279,7 +288,7 @@ export function useLiveKitVoiceOrb({
         audioContextRef.current = null;
       }
       if (typeof window !== "undefined") {
-        (window as any).mic = 0;
+        (window as unknown as { mic?: number }).mic = 0;
       }
     };
   }, [isOpen]);
