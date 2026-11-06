@@ -3,17 +3,42 @@
 import React, { useEffect, useState } from "react";
 import * as THREE from "three";
 import VoiceOrbScreen from "@/components/VoiceOrbScreen";
+import { getLenis } from "@/components/SmoothScroll";
+import { scrollScheduler, GeometryCache } from "@/lib/scrollScheduler";
 
 const LOGO_SRC = "/logo-removebg-preview.png";
+
+declare global {
+  interface Window {
+    __isVoiceOrbOpen?: boolean;
+    stopHeroOrb?: () => void;
+    startHeroOrb?: () => void;
+    __openVoiceOrb?: () => void;
+    THREE?: typeof THREE;
+  }
+}
 
 export default function Home() {
   const [isVoiceOrbOpen, setIsVoiceOrbOpen] = useState(false);
 
   useEffect(() => {
+    window.__isVoiceOrbOpen = isVoiceOrbOpen;
+    if (isVoiceOrbOpen) {
+      window.stopHeroOrb?.();
+    } else {
+      window.startHeroOrb?.();
+    }
+  }, [isVoiceOrbOpen]);
+
+  useEffect(() => {
     // Ensure window.THREE is available
     if (typeof window !== "undefined") {
-      (window as any).THREE = THREE;
-      (window as any).__openVoiceOrb = () => setIsVoiceOrbOpen(true);
+      window.THREE = THREE;
+      window.__openVoiceOrb = () => {
+        window.__isVoiceOrbOpen = true;
+        window.stopHeroOrb?.();
+        setIsVoiceOrbOpen(true);
+      };
     }
 
     // Set images to our logo
@@ -204,9 +229,22 @@ export default function Home() {
         const M = { x: -999, y: -999 };
         let W = 0,
           H = 0;
+        let frRafId: number | null = null;
+        let heroObserver: IntersectionObserver | null = null;
+
+        function isCanvasVisible() {
+          return cv && (cv.offsetParent !== null || cv.offsetWidth > 0 || cv.offsetHeight > 0);
+        }
 
         function rs() {
           if (!cv || !c) return;
+          if (!isCanvasVisible()) {
+            if (frRafId) {
+              cancelAnimationFrame(frRafId);
+              frRafId = null;
+            }
+            return;
+          }
           const d = window.devicePixelRatio || 1;
           W = cv.offsetWidth;
           H = cv.offsetHeight;
@@ -222,6 +260,7 @@ export default function Home() {
               vy: Math.random() - 0.5,
             });
           }
+          if (!frRafId && !R) fr();
         }
 
         function ln(
@@ -243,14 +282,18 @@ export default function Home() {
 
         let isHeroInView = true;
         if (typeof window !== "undefined" && "IntersectionObserver" in window && hero) {
-          new IntersectionObserver((entries) => {
+          heroObserver = new IntersectionObserver((entries) => {
             isHeroInView = entries[0].isIntersecting;
-          }, { threshold: 0.05 }).observe(hero);
+          }, { threshold: 0.05 });
+          heroObserver.observe(hero);
         }
 
         function fr() {
-          if (!c) return;
-          if (!R) requestAnimationFrame(fr);
+          if (!c || !isCanvasVisible()) {
+            frRafId = null;
+            return;
+          }
+          if (!R) frRafId = requestAnimationFrame(fr);
 
           // Avoid burning CPU when offscreen or while modal call intro is active
           const introActive = !document.body.classList.contains("go") && document.getElementById("in")?.style.display !== "none";
@@ -279,39 +322,163 @@ export default function Home() {
           }
         }
 
-        if (hero) {
-          hero.addEventListener("mousemove", (e) => {
-            const r = cv.getBoundingClientRect();
-            M.x = e.clientX - r.left;
-            M.y = e.clientY - r.top;
-            if (!HM && window.innerWidth > 860 && con) {
-              const b = hero.getBoundingClientRect();
-              con.style.transform =
-                "perspective(1400px) rotateX(" +
-                ((e.clientY - b.top) / b.height - 0.6) * -7 +
-                "deg) rotateY(" +
-                ((e.clientX - b.left) / b.width - 0.5) * 7 +
-                "deg)";
+        const finePointer = !HM && window.matchMedia("(pointer:fine)").matches;
+        if (hero && finePointer && window.innerWidth > 860) {
+          let heroRect: DOMRect | null = null;
+          let cvRect: DOMRect | null = null;
+          let tiltRafId: number | null = null;
+          let latestX = 0;
+          let latestY = 0;
+          let isHovered = false;
+
+          const updateTilt = () => {
+            tiltRafId = null;
+            if (!isHovered || !heroRect || !con) return;
+            const rotX = ((latestY - heroRect.top) / heroRect.height - 0.6) * -7;
+            const rotY = ((latestX - heroRect.left) / heroRect.width - 0.5) * 7;
+            con.style.transform =
+              "perspective(1400px) rotateX(" + rotX + "deg) rotateY(" + rotY + "deg)";
+          };
+
+          hero.addEventListener("mouseenter", () => {
+            if (!HM && window.matchMedia("(pointer:fine)").matches && window.innerWidth > 860) {
+              isHovered = true;
+              heroRect = hero.getBoundingClientRect();
+              if (cv) cvRect = cv.getBoundingClientRect();
+              if (con) con.style.transition = "none";
             }
           });
-          hero.addEventListener("mouseleave", () => {
-            M.x = M.y = -999;
-            if (con) con.style.transform = "";
+
+          hero.addEventListener("mousemove", (e) => {
+            if (!isHovered) {
+              if (!HM && window.matchMedia("(pointer:fine)").matches && window.innerWidth > 860) {
+                isHovered = true;
+                heroRect = hero.getBoundingClientRect();
+                if (cv) cvRect = cv.getBoundingClientRect();
+                if (con) con.style.transition = "none";
+              } else {
+                return;
+              }
+            }
+            latestX = e.clientX;
+            latestY = e.clientY;
+            if (cvRect) {
+              M.x = latestX - cvRect.left;
+              M.y = latestY - cvRect.top;
+            }
+            if (con && tiltRafId === null) {
+              tiltRafId = requestAnimationFrame(updateTilt);
+            }
           });
+
+          hero.addEventListener("mouseleave", () => {
+            isHovered = false;
+            heroRect = null;
+            cvRect = null;
+            if (tiltRafId !== null) {
+              cancelAnimationFrame(tiltRafId);
+              tiltRafId = null;
+            }
+            M.x = M.y = -999;
+            if (con) {
+              con.style.transition = "transform .25s ease-out";
+              con.style.transform = "";
+            }
+          });
+
+          const updateHeroOnScroll = () => {
+            if (isHovered && hero) {
+              heroRect = hero.getBoundingClientRect();
+              if (cv) cvRect = cv.getBoundingClientRect();
+              if (con && tiltRafId === null) {
+                tiltRafId = requestAnimationFrame(updateTilt);
+              }
+            }
+          };
+          scrollScheduler.subscribe("console-tilt", updateHeroOnScroll);
+          window.addEventListener("resize", updateHeroOnScroll, { passive: true });
         }
         window.addEventListener("resize", rs);
         rs();
-        fr();
+        if (isCanvasVisible()) {
+          fr();
+        }
+        (window as any).__cvCleanup = () => {
+          if (frRafId) cancelAnimationFrame(frRafId);
+          if (heroObserver) heroObserver.disconnect();
+          scrollScheduler.unsubscribe("console-tilt");
+          window.removeEventListener("resize", rs);
+        };
       }
 
-      document.querySelectorAll(".c").forEach((e) => {
-        const el = e as HTMLElement;
-        el.onmousemove = (v) => {
-          const r = el.getBoundingClientRect();
-          el.style.setProperty("--x", v.clientX - r.left + "px");
-          el.style.setProperty("--y", v.clientY - r.top + "px");
+      if (!HM && window.matchMedia("(pointer:fine)").matches) {
+        let activeBentoCard: HTMLElement | null = null;
+        let activeBentoRect: DOMRect | null = null;
+        let bentoRafId: number | null = null;
+        let bentoLatestX = 0;
+        let bentoLatestY = 0;
+
+        const flushBento = () => {
+          bentoRafId = null;
+          if (!activeBentoCard || !activeBentoRect) return;
+          const px = bentoLatestX - activeBentoRect.left;
+          const py = bentoLatestY - activeBentoRect.top;
+          activeBentoCard.style.setProperty("--x", px + "px");
+          activeBentoCard.style.setProperty("--y", py + "px");
+          const rotX = (py / activeBentoRect.height - 0.5) * -6;
+          const rotY = (px / activeBentoRect.width - 0.5) * 6;
+          activeBentoCard.style.transform =
+            "perspective(900px) rotateX(" + rotX + "deg) rotateY(" + rotY + "deg)";
         };
-      });
+
+        const updateBentoRect = () => {
+          if (activeBentoCard) {
+            activeBentoRect = activeBentoCard.getBoundingClientRect();
+            if (bentoRafId === null) {
+              bentoRafId = requestAnimationFrame(flushBento);
+            }
+          }
+        };
+
+        scrollScheduler.subscribe("bento-tilt", updateBentoRect);
+        window.addEventListener("resize", updateBentoRect, { passive: true });
+        (window as any).__bentoCleanup = () => {
+          window.removeEventListener("resize", updateBentoRect);
+        };
+
+        document.querySelectorAll(".c").forEach((e) => {
+          const el = e as HTMLElement;
+
+          el.addEventListener("mouseenter", () => {
+            activeBentoCard = el;
+            activeBentoRect = el.getBoundingClientRect();
+          });
+
+          el.addEventListener("mousemove", (v) => {
+            if (activeBentoCard !== el || !activeBentoRect) {
+              activeBentoCard = el;
+              activeBentoRect = el.getBoundingClientRect();
+            }
+            bentoLatestX = v.clientX;
+            bentoLatestY = v.clientY;
+            if (bentoRafId === null) {
+              bentoRafId = requestAnimationFrame(flushBento);
+            }
+          });
+
+          el.addEventListener("mouseleave", () => {
+            if (activeBentoCard === el) {
+              activeBentoCard = null;
+              activeBentoRect = null;
+            }
+            if (bentoRafId !== null) {
+              cancelAnimationFrame(bentoRafId);
+              bentoRafId = null;
+            }
+            el.style.transform = "";
+          });
+        });
+      }
 
       const rv = document.getElementById("rv");
       if (rv) {
@@ -320,20 +487,23 @@ export default function Home() {
           .map((w) => "<span>" + w + "</span>")
           .join(" ");
         const sp = rv.children;
-        const sc = () => {
-          const r = rv.getBoundingClientRect();
+        const sc = (sy: number, geom: GeometryCache) => {
+          if (!geom.rv) return;
+          const rTop = geom.rv.top - sy;
           const pr =
-            (window.innerHeight * 0.85 - r.top) /
-            (r.height + window.innerHeight * 0.35);
+            (geom.vpHeight * 0.85 - rTop) /
+            (geom.rv.height + geom.vpHeight * 0.35);
           const n = R
             ? sp.length
             : Math.max(0, Math.min(1, pr)) * sp.length;
           for (let i = 0; i < sp.length; i++) {
-            sp[i].className = i < n ? "on" : "";
+            const cls = i < n ? "on" : "";
+            if (sp[i].className !== cls) {
+              sp[i].className = cls;
+            }
           }
         };
-        window.addEventListener("scroll", sc, { passive: true });
-        sc();
+        scrollScheduler.subscribe("sc", sc);
       }
 
       const L = document.getElementById("lines");
@@ -379,14 +549,20 @@ export default function Home() {
           }, 4400);
         };
 
-        new IntersectionObserver((e) => {
+        const linesObserver = new IntersectionObserver((e) => {
           if (e[0].isIntersecting) {
             if (!iv) iv = setInterval(tick, 450);
           } else {
             clearInterval(iv);
             iv = 0;
           }
-        }).observe(L);
+        });
+        linesObserver.observe(L);
+
+        (window as any).__linesCleanup = () => {
+          if (iv) clearInterval(iv);
+          linesObserver.disconnect();
+        };
       }
     })();
 
@@ -414,9 +590,17 @@ export default function Home() {
         if (!dv || idx < 0 || idx >= S.length) return;
         cur = idx;
         dv.innerHTML = S[idx];
-        dv.classList.remove("pop");
-        void dv.offsetWidth;
-        dv.classList.add("pop");
+        const anims = typeof dv.getAnimations === "function" ? dv.getAnimations() : [];
+        if (anims && anims.length > 0) {
+          anims.forEach((a) => {
+            a.currentTime = 0;
+            a.play();
+          });
+        } else {
+          dv.classList.remove("pop");
+          void dv.offsetWidth;
+          dv.classList.add("pop");
+        }
       }
 
       function selectStep(targetIdx: number) {
@@ -442,10 +626,15 @@ export default function Home() {
         const targetP = (targetIdx + 0.15) / 4;
         const targetScrollY = storyDocumentTop + targetP * totalScrollable;
 
-        window.scrollTo({
-          top: targetScrollY,
-          behavior: "smooth",
-        });
+        const lenis = getLenis();
+        if (lenis) {
+          lenis.scrollTo(targetScrollY, { duration: 0.8 });
+        } else {
+          window.scrollTo({
+            top: targetScrollY,
+            behavior: "smooth",
+          });
+        }
 
         clickTimer = setTimeout(() => {
           isClickScrolling = false;
@@ -482,13 +671,18 @@ export default function Home() {
       };
       window.addEventListener("wheel", resetClickLock, { passive: true });
       window.addEventListener("touchstart", resetClickLock, { passive: true });
+      (window as any).__storyLockCleanup = () => {
+        window.removeEventListener("wheel", resetClickLock);
+        window.removeEventListener("touchstart", resetClickLock);
+      };
 
-      function f() {
-        if (!st || !dv) return;
-        const r = st.getBoundingClientRect();
+      function f(sy: number, geom: GeometryCache) {
+        if (!st || !dv || !geom.story) return;
+        const totalScrollable = geom.story.height - geom.vpHeight;
+        const newRTop = geom.story.top - sy;
         const p = Math.max(
           0,
-          Math.min(0.999, -r.top / (r.height - window.innerHeight))
+          Math.min(0.999, -newRTop / totalScrollable)
         );
         const k = Math.floor(p * 4);
 
@@ -502,7 +696,10 @@ export default function Home() {
         if (!isClickScrolling) {
           for (let i = 0; i < 4; i++) {
             if (li[i]) {
-              li[i].className = i === k ? "on" : "";
+              const targetCls = i === k ? "on" : "";
+              if (li[i].className !== targetCls) {
+                li[i].className = targetCls;
+              }
               if (i === k) {
                 (li[i] as HTMLElement).style.setProperty(
                   "--p",
@@ -518,7 +715,10 @@ export default function Home() {
         } else {
           for (let i = 0; i < 4; i++) {
             if (li[i]) {
-              li[i].className = i === clickTarget ? "on" : "";
+              const targetCls = i === clickTarget ? "on" : "";
+              if (li[i].className !== targetCls) {
+                li[i].className = targetCls;
+              }
               if (i === clickTarget) {
                 (li[i] as HTMLElement).style.setProperty(
                   "--p",
@@ -529,8 +729,7 @@ export default function Home() {
           }
         }
       }
-      window.addEventListener("scroll", f, { passive: true });
-      f();
+      scrollScheduler.subscribe("f", f);
 
       const box = document.querySelector(".orb") as HTMLElement;
       const cs = document.getElementById("oc") as HTMLCanvasElement;
@@ -542,7 +741,6 @@ export default function Home() {
             canvas: cs,
             alpha: true,
             antialias: true,
-            preserveDrawingBuffer: true,
           });
         } catch {
           return {
@@ -593,26 +791,26 @@ export default function Home() {
       const F =
         "uniform float t;uniform vec3 A,B;varying float vd;varying vec3 vn,vv;void main(){float fr=pow(1.-abs(dot(normalize(vn),normalize(vv))),2.2);vec3 c=mix(A,B,smoothstep(.2,.8,vd));c=mix(c,vec3(0.35,.75,1.),smoothstep(.55,1.,sin(vd*8.+t*.8)*.5+.5)*.55);c=mix(c,vec3(.78,.9,1.),fr*.75);gl_FragColor=vec4(mix(c,vec3(1.),.14),1.);}";
 
-      const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 56, 56),
-        new THREE.ShaderMaterial({
-          uniforms: U,
-          vertexShader: V,
-          fragmentShader: F,
-        })
-      );
+      const geom = new THREE.SphereGeometry(1, 56, 56);
+      const mat = new THREE.ShaderMaterial({
+        uniforms: U,
+        vertexShader: V,
+        fragmentShader: F,
+      });
+      const mesh = new THREE.Mesh(geom, mat);
       sc.add(mesh);
 
-      let sy = 0;
-      window.addEventListener(
-        "scroll",
-        () => {
-          sy = window.scrollY;
-        },
-        { passive: true }
-      );
+      let sy = typeof window !== "undefined" ? window.scrollY : 0;
+      const onScroll = (newSy: number) => {
+        sy = newSy;
+        if (isOrbInView) startLpIfNeeded();
+      };
 
       const chArr = [].slice.call(box.querySelectorAll(".chip")) as HTMLElement[];
+      const chPrevZ = new Array(chArr.length).fill("");
+      chArr.forEach((e) => {
+        e.style.opacity = "1";
+      });
       let mx = 0,
         my = 0,
         sm = 0.1;
@@ -634,33 +832,85 @@ export default function Home() {
       }
       rz();
       window.addEventListener("resize", rz);
-      window.addEventListener("mousemove", (e) => {
+      const onMouseMove = (e: MouseEvent) => {
         mx = e.clientX / window.innerWidth - 0.5;
         my = e.clientY / window.innerHeight - 0.5;
-      });
+      };
+      window.addEventListener("mousemove", onMouseMove);
 
-      let fc = 0;
-      if (window.ResizeObserver) new ResizeObserver(rz).observe(box);
+      let boxRo: ResizeObserver | null = null;
+      if (window.ResizeObserver) {
+        boxRo = new ResizeObserver(rz);
+        boxRo.observe(box);
+      }
 
       let isOrbInView = true;
-      if (typeof window !== "undefined" && "IntersectionObserver" in window) {
-        new IntersectionObserver((entries) => {
-          isOrbInView = entries[0].isIntersecting;
-        }, { threshold: 0.05 }).observe(box);
+      let orbObserver: IntersectionObserver | null = null;
+      let lpRafId: number | null = null;
+      let lastTs: number | null = null;
+      let simTime = 0;
+
+      function startLpIfNeeded() {
+        if (isOrbInView && !document.hidden && !R && !lpRafId && !window.__isVoiceOrbOpen) {
+          lastTs = null;
+          lpRafId = requestAnimationFrame(lp);
+        }
       }
+      window.startHeroOrb = startLpIfNeeded;
+      window.stopHeroOrb = stopLp;
+
+      function stopLp() {
+        if (lpRafId) {
+          cancelAnimationFrame(lpRafId);
+          lpRafId = null;
+        }
+        lastTs = null;
+      }
+
+      const heroSection =
+        (document.querySelector(".hero") as HTMLElement) || box;
+      if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+        orbObserver = new IntersectionObserver(
+          (entries) => {
+            isOrbInView = entries[0].isIntersecting;
+            if (isOrbInView) {
+              startLpIfNeeded();
+            } else {
+              stopLp();
+            }
+          },
+          { threshold: 0.02, rootMargin: "100px" }
+        );
+        orbObserver.observe(heroSection);
+      }
+
+      const handleVisChange = () => {
+        if (document.hidden) {
+          stopLp();
+        } else {
+          startLpIfNeeded();
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisChange);
 
       // Initial single render so the orb is immediately ready
       r.render(sc, cam);
 
       function lp(ts: number) {
-        if (!R) requestAnimationFrame(lp);
-
-        // Pause loop only when user has scrolled far down past the hero section
-        if (window.scrollY > 900) {
+        if (!isOrbInView || document.hidden || R || window.__isVoiceOrbOpen) {
+          lpRafId = null;
+          lastTs = null;
           return;
         }
+        lpRafId = requestAnimationFrame(lp);
 
-        const t = R ? 2 : ts / 1000;
+        if (lastTs !== null) {
+          const dt = Math.min((ts - lastTs) / 1000, 0.1);
+          simTime += dt;
+        }
+        lastTs = ts;
+
+        const t = R ? 2 : simTime;
         U.t.value = t;
         sm +=
           (((window as any).mic ||
@@ -681,7 +931,8 @@ export default function Home() {
         r.render(sc, cam);
 
         const n = chArr.length;
-        chArr.forEach((e, i) => {
+        for (let i = 0; i < n; i++) {
+          const e = chArr[i];
           const a = t * 0.45 + (i * 6.2832) / n;
           const x = Math.cos(a) * rx;
           const z = Math.sin(a);
@@ -694,11 +945,38 @@ export default function Home() {
             "px) scale(" +
             (0.94 + 0.1 * ((z + 1) / 2)) +
             ")";
-          e.style.zIndex = z > 0 ? "4" : "3";
           e.style.opacity = "1";
-        });
+          const targetZ = z > 0 ? "4" : "3";
+          if (chPrevZ[i] !== targetZ) {
+            chPrevZ[i] = targetZ;
+            e.style.zIndex = targetZ;
+          }
+        }
       }
-      requestAnimationFrame(lp);
+      scrollScheduler.subscribe("sy", onScroll);
+      startLpIfNeeded();
+
+      (window as any).__orbCleanup = () => {
+        stopLp();
+        window.removeEventListener("resize", rz);
+        window.removeEventListener("mousemove", onMouseMove);
+        scrollScheduler.unsubscribe("sy");
+        document.removeEventListener("visibilitychange", handleVisChange);
+        if (orbObserver) orbObserver.disconnect();
+        if (boxRo) boxRo.disconnect();
+        if (mesh) {
+          mesh.geometry.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach((m: any) => m.dispose());
+          } else {
+            mesh.material.dispose();
+          }
+          sc.remove(mesh);
+        }
+        if (r && typeof r.dispose === "function") {
+          r.dispose();
+        }
+      };
     })();
 
     // Module 4: Custom cursor & Marquee & Agent Preview Customizer
@@ -712,37 +990,84 @@ export default function Home() {
           y = 0,
           tx = 0,
           ty = 0;
-        window.addEventListener("mousemove", (e) => {
+        let curRafId: number | null = null;
+
+        function l() {
+          curRafId = null;
+          const dx = tx - x;
+          const dy = ty - y;
+          if (Math.hypot(dx, dy) < 0.1) {
+            x = tx;
+            y = ty;
+            if (cr) cr.style.transform = "translate(" + x + "px," + y + "px)";
+            return;
+          }
+          x += dx * 0.15;
+          y += dy * 0.15;
+          if (cr) cr.style.transform = "translate(" + x + "px," + y + "px)";
+          curRafId = requestAnimationFrame(l);
+        }
+
+        const onCursorMove = (e: MouseEvent) => {
           tx = e.clientX;
           ty = e.clientY;
           if (cd) cd.style.transform = "translate(" + tx + "px," + ty + "px)";
-        });
-        (function l() {
-          x += (tx - x) * 0.15;
-          y += (ty - y) * 0.15;
-          if (cr) cr.style.transform = "translate(" + x + "px," + y + "px)";
-          requestAnimationFrame(l);
-        })();
-        document.addEventListener("mouseover", (e) => {
+          if (curRafId === null) {
+            curRafId = requestAnimationFrame(l);
+          }
+        };
+        const onCursorOver = (e: MouseEvent) => {
           if (cr) {
             cr.classList.toggle(
               "h",
               !!(e.target as HTMLElement).closest("a,button,.c,input")
             );
           }
-        });
+          if (curRafId === null && Math.hypot(tx - x, ty - y) >= 0.1) {
+            curRafId = requestAnimationFrame(l);
+          }
+        };
+        window.addEventListener("mousemove", onCursorMove);
+        document.addEventListener("mouseover", onCursorOver);
+        (window as any).__cursorCleanup = () => {
+          if (curRafId !== null) cancelAnimationFrame(curRafId);
+          window.removeEventListener("mousemove", onCursorMove);
+          document.removeEventListener("mouseover", onCursorOver);
+        };
         document.querySelectorAll(".btn").forEach((b) => {
           const btn = b as HTMLElement;
-          btn.addEventListener("mousemove", (e) => {
-            const r = btn.getBoundingClientRect();
-            btn.style.transform =
-              "translate(" +
-              (e.clientX - r.left - r.width / 2) * 0.3 +
-              "px," +
-              (e.clientY - r.top - r.height / 2) * 0.4 +
-              "px)";
+          let r: DOMRect | null = null;
+          let rafId: number | null = null;
+          let latestX = 0;
+          let latestY = 0;
+
+          const flush = () => {
+            rafId = null;
+            if (!r) return;
+            const tx = (latestX - r.left - r.width / 2) * 0.3;
+            const ty = (latestY - r.top - r.height / 2) * 0.4;
+            btn.style.transform = "translate(" + tx + "px," + ty + "px)";
+          };
+
+          btn.addEventListener("mouseenter", () => {
+            r = btn.getBoundingClientRect();
           });
+
+          btn.addEventListener("mousemove", (e) => {
+            if (!r) r = btn.getBoundingClientRect();
+            latestX = e.clientX;
+            latestY = e.clientY;
+            if (rafId === null) {
+              rafId = requestAnimationFrame(flush);
+            }
+          });
+
           btn.addEventListener("mouseleave", () => {
+            r = null;
+            if (rafId !== null) {
+              cancelAnimationFrame(rafId);
+              rafId = null;
+            }
             btn.style.transform = "";
           });
         });
@@ -750,17 +1075,14 @@ export default function Home() {
 
       const r1 = document.getElementById("r1");
       const r2 = document.getElementById("r2");
-      function bs() {
-        if (!r1 || !r2 || !r1.parentNode) return;
-        let p =
-          window.innerHeight -
-          (r1.parentNode as HTMLElement).getBoundingClientRect().top;
+      function bs(sy: number, geom: GeometryCache) {
+        if (!r1 || !r2 || !geom.big) return;
+        let p = geom.vpHeight - (geom.big.top - sy);
         if (HM) p = 0;
         r1.style.transform = "translateX(" + -p * 0.4 + "px)";
         r2.style.transform = "translateX(" + (-1100 + p * 0.4) + "px)";
       }
-      window.addEventListener("scroll", bs, { passive: true });
-      bs();
+      scrollScheduler.subscribe("bs", bs);
 
       const C: Record<
         string,
@@ -930,38 +1252,17 @@ export default function Home() {
       });
       calc();
 
-      if (!HM && window.matchMedia("(pointer:fine)").matches) {
-        document.querySelectorAll(".c").forEach((e) => {
-          const el = e as HTMLElement;
-          el.addEventListener("mousemove", (v) => {
-            const r = el.getBoundingClientRect();
-            el.style.transform =
-              "perspective(900px) rotateX(" +
-              ((v.clientY - r.top) / r.height - 0.5) * -6 +
-              "deg) rotateY(" +
-              ((v.clientX - r.left) / r.width - 0.5) * 6 +
-              "deg)";
-          });
-          el.addEventListener("mouseleave", () => {
-            el.style.transform = "";
-          });
-        });
-      }
+      // Bento card hover & tilt merged into Module 2 above
     })();
 
     // Module 6: Scroll Progress & Range background filling
     (() => {
       const pg = document.getElementById("pg");
-      function sp() {
+      function sp(sy: number, geom: GeometryCache) {
         if (!pg) return;
-        pg.style.transform =
-          "scaleX(" +
-          window.scrollY /
-            (document.documentElement.scrollHeight - window.innerHeight) +
-          ")";
+        pg.style.transform = "scaleX(" + sy / geom.maxScroll + ")";
       }
-      window.addEventListener("scroll", sp, { passive: true });
-      sp();
+      scrollScheduler.subscribe("sp", sp);
 
       ["cw", "ca", "cc"].forEach((i) => {
         const e = document.getElementById(i) as HTMLInputElement;
@@ -985,28 +1286,33 @@ export default function Home() {
 
     // Module 7: Giant typography parallax
     (() => {
-      const G = [].slice.call(
-        document.querySelectorAll(".gt")
-      ) as HTMLElement[];
-      function gp() {
-        G.forEach((g) => {
-          if (!g.parentNode) return;
-          const r = (g.parentNode as HTMLElement).getBoundingClientRect();
-          const c = r.top + r.height / 2 - window.innerHeight / 2;
-          const d = Number(g.dataset.d) || 1;
-          g.style.setProperty(
+      function gp(sy: number, geom: GeometryCache) {
+        geom.gtParents.forEach((item) => {
+          let rTop = item.top - sy;
+          if (item.isSticky && geom.story) {
+            const storyStart = geom.story.top;
+            const storyEnd = geom.story.top + geom.story.height - geom.vpHeight;
+            if (sy < storyStart) {
+              rTop = storyStart - sy;
+            } else if (sy > storyEnd) {
+              rTop = storyEnd - sy;
+            } else {
+              rTop = 0;
+            }
+          }
+          const c = rTop + item.height / 2 - geom.vpHeight / 2;
+          item.el.style.setProperty(
             "--ty",
             Math.max(-90, Math.min(90, c * -0.12)) + "px"
           );
-          g.style.setProperty(
+          item.el.style.setProperty(
             "--tx",
-            Math.max(-140, Math.min(140, c * 0.18 * d)) + "px"
+            Math.max(-140, Math.min(140, c * 0.18 * item.d)) + "px"
           );
         });
       }
       if (!HM) {
-        window.addEventListener("scroll", gp, { passive: true });
-        gp();
+        scrollScheduler.subscribe("gp", gp);
       }
     })();
 
@@ -1331,13 +1637,19 @@ export default function Home() {
             });
         }
         ck();
-        setInterval(ck, 20000);
+        const ckInterval = setInterval(ck, 20000);
         sel(0);
         if (!R) {
           au = setInterval(() => {
             sel((cur + 1) % P.length);
           }, 11000);
         }
+        (window as any).__posDemoCleanup = () => {
+          clearInterval(ckInterval);
+          clearInterval(au);
+          clearInterval(tm);
+          clr();
+        };
       }
     })();
 
@@ -1851,6 +2163,12 @@ export default function Home() {
         mp.classList.toggle("on", o);
         mp.setAttribute("aria-hidden", String(!o));
         document.documentElement.style.overflow = o ? "hidden" : "";
+        const lenis = getLenis();
+        if (o) {
+          lenis?.stop();
+        } else {
+          lenis?.start();
+        }
       }
 
       if (hb) {
@@ -1889,45 +2207,48 @@ export default function Home() {
           });
         });
       }
-      document.addEventListener("click", (e) => {
+      const onNavDocClick = (e: MouseEvent) => {
         if (dd && !dd.contains(e.target as Node)) {
           dd.classList.remove("open");
           if (dt) dt.setAttribute("aria-expanded", "false");
         }
-      });
-      document.addEventListener("keydown", (e) => {
+      };
+      const onNavDocKeydown = (e: KeyboardEvent) => {
         if (e.key === "Escape") {
           if (dd) dd.classList.remove("open");
           tog(false);
         }
-      });
-      window.addEventListener("resize", () => {
+      };
+      const onNavWindowResize = () => {
         if (window.innerWidth > 960) tog(false);
-      });
+      };
+      document.addEventListener("click", onNavDocClick);
+      document.addEventListener("keydown", onNavDocKeydown);
+      window.addEventListener("resize", onNavWindowResize);
+      (window as any).__navGlobalCleanup = () => {
+        document.removeEventListener("click", onNavDocClick);
+        document.removeEventListener("keydown", onNavDocKeydown);
+        window.removeEventListener("resize", onNavWindowResize);
+      };
 
-      const sp: [string, string][] = [
-        ["home", ".hero"],
-        ["products", "#products"],
-        ["roi", "#roi"],
-        ["integrations", "#integrations"],
-        ["contact", "#contact"],
-      ];
-      function spy() {
+      const navLinks = Array.from(
+        document.querySelectorAll(".nl [data-s]")
+      ) as HTMLElement[];
+      let lastCur = "";
+      function spy(sy: number, geom: GeometryCache) {
         let cur = "home";
-        const y = window.innerHeight * 0.4;
-        sp.forEach((x) => {
-          const e = document.querySelector(x[1]);
-          if (e && e.getBoundingClientRect().top <= y) cur = x[0];
+        const y = geom.vpHeight * 0.4;
+        geom.sections.forEach((x) => {
+          if (x.top - sy <= y) cur = x.name;
         });
-        document.querySelectorAll(".nl [data-s]").forEach((a) => {
-          a.classList.toggle(
-            "act",
-            (a as HTMLElement).dataset.s === cur
-          );
-        });
+        if (cur !== lastCur) {
+          lastCur = cur;
+          navLinks.forEach((a) => {
+            a.classList.toggle("act", a.dataset.s === cur);
+          });
+        }
       }
-      window.addEventListener("scroll", spy, { passive: true });
-      spy();
+      scrollScheduler.subscribe("spy", spy);
     })();
 
     // Module 12: Sound Effects System (Web Audio API)
@@ -2113,11 +2434,19 @@ export default function Home() {
       function go() {
         document.body.classList.add("go");
         document.documentElement.style.overflow = "";
+        if (typeof (window as any).startHeroOrb === "function") {
+          (window as any).startHeroOrb();
+        }
       }
 
       try {
         seen = sessionStorage.getItem("ca1");
       } catch {}
+
+      if (!seen && typeof window !== "undefined" && "scrollRestoration" in history) {
+        history.scrollRestoration = "manual";
+        window.scrollTo(0, 0);
+      }
 
       const rpl = $("rpl");
       if (rpl) {
@@ -2126,6 +2455,10 @@ export default function Home() {
           try {
             sessionStorage.removeItem("ca1");
           } catch {}
+          if (typeof window !== "undefined" && "scrollRestoration" in history) {
+            history.scrollRestoration = "manual";
+          }
+          window.scrollTo(0, 0);
           location.reload();
         };
       }
@@ -2686,7 +3019,12 @@ export default function Home() {
         }
 
         if (!valid && firstErrEl) {
-          firstErrEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          const lenis = getLenis();
+          if (lenis) {
+            lenis.scrollTo(firstErrEl as HTMLElement, { offset: -window.innerHeight / 3 });
+          } else {
+            firstErrEl.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
           if (typeof (firstErrEl as any).focus === "function") {
             (firstErrEl as any).focus();
           }
@@ -2807,7 +3145,12 @@ export default function Home() {
         const kdone = $("kdone");
         if (kdone) kdone.hidden = false;
         const kxf = $("kxf");
-        if (kxf) kxf.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        const lenis = getLenis();
+        if (lenis && kxf) {
+          lenis.scrollTo(kxf as HTMLElement);
+        } else if (kxf) {
+          kxf.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
       };
 
       const kre = $("kre");
@@ -2865,7 +3208,70 @@ export default function Home() {
       };
     })();
 
+    // Phase 1: Shared IntersectionObserver to pause offscreen infinite CSS animations
+    let offscreenAnimObserver: IntersectionObserver | null = null;
+    if (typeof window !== "undefined" && "IntersectionObserver" in window) {
+      offscreenAnimObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.remove("anim-paused");
+            } else {
+              entry.target.classList.add("anim-paused");
+            }
+          });
+        },
+        { rootMargin: "120px" }
+      );
+
+      const animTargets = [
+        document.querySelector(".big"),
+        document.querySelector(".con"),
+        document.querySelector(".pill"),
+        document.querySelector("h1 span"),
+        document.getElementById("lines"),
+      ];
+      animTargets.forEach((el) => {
+        if (el) offscreenAnimObserver?.observe(el);
+      });
+    }
+
     return () => {
+      scrollScheduler.unsubscribe("sc");
+      scrollScheduler.unsubscribe("f");
+      scrollScheduler.unsubscribe("bs");
+      scrollScheduler.unsubscribe("sp");
+      scrollScheduler.unsubscribe("gp");
+      scrollScheduler.unsubscribe("spy");
+      scrollScheduler.unsubscribe("console-tilt");
+      scrollScheduler.unsubscribe("bento-tilt");
+      if ((window as any).__orbCleanup) {
+        (window as any).__orbCleanup();
+      }
+      if (offscreenAnimObserver) {
+        offscreenAnimObserver.disconnect();
+      }
+      if ((window as any).__linesCleanup) {
+        (window as any).__linesCleanup();
+      }
+      if ((window as any).__cvCleanup) {
+        (window as any).__cvCleanup();
+      }
+      if ((window as any).__bentoCleanup) {
+        (window as any).__bentoCleanup();
+      }
+      if ((window as any).__storyLockCleanup) {
+        (window as any).__storyLockCleanup();
+      }
+      if ((window as any).__cursorCleanup) {
+        (window as any).__cursorCleanup();
+      }
+      if ((window as any).__posDemoCleanup) {
+        (window as any).__posDemoCleanup();
+      }
+      if ((window as any).__navGlobalCleanup) {
+        (window as any).__navGlobalCleanup();
+      }
       const tryBox = document.getElementById("try") as any;
       if (tryBox?._demoCleanup) tryBox._demoCleanup();
       if ((window as any).__orderDemoCleanup) {
@@ -3072,7 +3478,7 @@ export default function Home() {
         </div>
       </nav>
 
-      <div className="mp" id="mp" aria-hidden="true">
+      <div className="mp" id="mp" aria-hidden="true" data-lenis-prevent>
         <div className="mpi">
           <a href="#home">Home</a>
           <button className="mpd" aria-expanded="false">
@@ -3263,7 +3669,7 @@ export default function Home() {
             role="region"
             aria-label="Interactive order demo"
           >
-            <div className="tabs" role="tablist">
+            <div className="tabs" role="tablist" data-lenis-prevent>
               <button role="tab" data-k="call" aria-selected="true">
                 Phone call
               </button>
@@ -3758,16 +4164,28 @@ export default function Home() {
 
       <div className="big" aria-hidden="true">
         <div id="r1">
-          <span>Every call.</span>
-          <span className="o">Every chat.</span>
-          <span>Every order.</span>
-          <span className="o">Every call.</span>
+          <div className="big-track">
+            <span>Every call.</span>
+            <span className="o">Every chat.</span>
+            <span>Every order.</span>
+            <span className="o">Every call.</span>
+            <span>Every call.</span>
+            <span className="o">Every chat.</span>
+            <span>Every order.</span>
+            <span className="o">Every call.</span>
+          </div>
         </div>
         <div id="r2">
-          <span className="o">Never missed.</span>
-          <span>Never late.</span>
-          <span className="o">Never busy.</span>
-          <span>Never missed.</span>
+          <div className="big-track">
+            <span className="o">Never missed.</span>
+            <span>Never late.</span>
+            <span className="o">Never busy.</span>
+            <span>Never missed.</span>
+            <span className="o">Never missed.</span>
+            <span>Never late.</span>
+            <span className="o">Never busy.</span>
+            <span>Never missed.</span>
+          </div>
         </div>
       </div>
 
@@ -4306,7 +4724,11 @@ export default function Home() {
 
       <VoiceOrbScreen
         isOpen={isVoiceOrbOpen}
-        onClose={() => setIsVoiceOrbOpen(false)}
+        onClose={() => {
+          window.__isVoiceOrbOpen = false;
+          setIsVoiceOrbOpen(false);
+          window.startHeroOrb?.();
+        }}
       />
     </>
   );
