@@ -699,22 +699,4 @@ a.ci-item:hover{transform:translateX(3px);opacity:.95}
 }
 
 
-/* Diagnostic switches (?perf=...) */
-.perf-noblur *, .perf-noblur *::before, .perf-noblur *::after {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  filter: none !important;
-}
-.perf-noorb #oc, .perf-noorb .pul, .perf-noorb .orr, .perf-noorb .fo, .perf-noorb .core, .perf-noorb .chip {
-  display: none !important;
-}
-.perf-nomarquee .big {
-  display: none !important;
-}
-.perf-noshadow *, .perf-noshadow *::before, .perf-noshadow *::after {
-  box-shadow: none !important;
-  text-shadow: none !important;
-}
-.perf-nocursor #cur, .perf-nocursor #cdt {
-  display: none !important;
-}
+

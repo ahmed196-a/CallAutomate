@@ -37,21 +37,6 @@ export default function Home() {
       };
     }
 
-    // Real-device diagnostic flags (?perf=noblur,noorb,nomarquee,noshadow,nocursor)
-    if (typeof window !== "undefined" && window.location.search) {
-      const params = new URLSearchParams(window.location.search);
-      const perfFlags = params.get("perf");
-      if (perfFlags) {
-        const flags = perfFlags.split(",").map((s) => s.trim().toLowerCase());
-        flags.forEach((f) => {
-          document.documentElement.classList.add("perf-" + f);
-          if (f === "noorb" && typeof (window as any).stopHeroOrb === "function") {
-            (window as any).stopHeroOrb();
-          }
-        });
-      }
-    }
-
     // Set images to our logo
     const brandImg = document.querySelector(".brand img") as HTMLImageElement;
     const baseSrc = brandImg?.src || LOGO_SRC;
@@ -333,7 +318,7 @@ export default function Home() {
           }
         }
 
-        const finePointer = !HM && window.matchMedia("(pointer:fine)").matches && !document.documentElement.classList.contains("perf-nocursor");
+        const finePointer = !HM && window.matchMedia("(pointer:fine)").matches;
         if (hero && finePointer && window.innerWidth > 860) {
           let heroRect: DOMRect | null = null;
           let cvRect: DOMRect | null = null;
@@ -422,7 +407,7 @@ export default function Home() {
         };
       }
 
-      if (!HM && window.matchMedia("(pointer:fine)").matches && !document.documentElement.classList.contains("perf-nocursor")) {
+      if (!HM && window.matchMedia("(pointer:fine)").matches) {
         let activeBentoCard: HTMLElement | null = null;
         let activeBentoRect: DOMRect | null = null;
         let bentoRafId: number | null = null;
@@ -992,7 +977,7 @@ export default function Home() {
 
     // Module 4: Custom cursor & Marquee & Agent Preview Customizer
     (() => {
-      const fine = window.matchMedia("(pointer:fine)").matches && !document.documentElement.classList.contains("perf-nocursor");
+      const fine = window.matchMedia("(pointer:fine)").matches;
       if (fine && !HM) {
         document.body.classList.add("cn");
         const cr = document.getElementById("cur");
