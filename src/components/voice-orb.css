@@ -217,9 +217,7 @@
   width: min(580px, calc(100% - 32px));
   padding: 6px 8px 6px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: #ffffff;
   border: 1px solid rgba(226, 232, 240, 0.95);
   box-shadow: 0 14px 32px rgba(46, 115, 237, 0.16), 0 0 0 1px rgba(226, 232, 240, 0.8);
 }
