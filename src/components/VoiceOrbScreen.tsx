@@ -469,6 +469,20 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     }
   }, [isOpen, viewMode]);
 
+  // Close voice screen on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   // Three.js 3D Robot Setup & Animation Loop
   useEffect(() => {
     if (!isOpen) return;
