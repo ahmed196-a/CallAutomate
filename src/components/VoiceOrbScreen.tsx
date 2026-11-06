@@ -35,10 +35,20 @@ const CHIP_ACTIONS: ChipAction[] = [
 const SLOT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const SLOT_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+interface MaterialWithMap extends THREE.Material {
+  map?: THREE.Texture | null;
+}
+
+interface ThreeWithTimer {
+  Timer?: new () => { update: () => void; getElapsed: () => number; dispose?: () => void };
+}
+
 export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps) {
   const [viewMode, setViewMode] = useState<"fullscreen" | "docked">("fullscreen");
   const viewModeRef = useRef<"fullscreen" | "docked">(viewMode);
-  viewModeRef.current = viewMode;
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
   const [, setUserName] = useState<string>("");
   const [inputText, setInputText] = useState<string>("");
 
@@ -54,7 +64,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
   const robotCtlRef = useRef<{
     thinking: (on: boolean) => void;
     mood: (name: string, ms?: number) => void;
-    lookAt: (target: any, ms?: number) => void;
+    lookAt: (target: { x: number; y: number } | HTMLElement | string | null | undefined, ms?: number) => void;
     jump: () => void;
   } | null>(null);
 
@@ -396,9 +406,23 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     [navigateTo]
   );
 
+  const handleClose = useCallback(() => {
+    setViewMode("fullscreen");
+    setUserName("");
+    formDataRef.current = {
+      name: "",
+      restaurant: "",
+      contact: "",
+      channels: [],
+      pos: "",
+      slot: "",
+    };
+    onClose();
+  }, [onClose]);
+
   // LiveKit RPC Action Runner
   const handleAction = useCallback(
-    async (name: string, input: any) => {
+    async (name: string, input: Record<string, unknown>) => {
       return executeOrbAction(name, input, {
         navigateTo,
         fillDOMField,
@@ -410,7 +434,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
         handleROIFromTool,
         setUserName,
         formDataRef,
-        onClose,
+        onClose: handleClose,
       });
     },
     [
@@ -422,7 +446,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
       selectTomorrowSlotInDOM,
       submitBookingFormInDOM,
       handleROIFromTool,
-      onClose,
+      handleClose,
     ]
   );
 
@@ -443,21 +467,6 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     onChatMessage: caption,
   });
 
-  // Reset local state when opened
-  useEffect(() => {
-    if (!isOpen) return;
-    setViewMode("fullscreen");
-    setUserName("");
-    formDataRef.current = {
-      name: "",
-      restaurant: "",
-      contact: "",
-      channels: [],
-      pos: "",
-      slot: "",
-    };
-  }, [isOpen]);
-
   // Stop Lenis while voice modal is in fullscreen mode
   useEffect(() => {
     const lenis = getLenis();
@@ -474,14 +483,14 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        onClose();
+        handleClose();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
   // Three.js 3D Robot Setup & Animation Loop
   useEffect(() => {
@@ -731,19 +740,19 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
       mood.until = performance.now() + ms;
     }
 
-    function lookAt(t: any, ms = 2500) {
+    function lookAt(t: string | HTMLElement | { x: number; y: number } | null | undefined, ms = 2500) {
       let x = 0,
         y = 0;
       if (typeof t === "string") {
         x = t === "left" ? -0.85 : t === "right" ? 0.85 : 0;
         y = t === "up" ? 0.7 : t === "down" ? -0.6 : 0.1;
-      } else if (t && t.getBoundingClientRect) {
+      } else if (t && "getBoundingClientRect" in t && typeof t.getBoundingClientRect === "function") {
         const r = wrap?.getBoundingClientRect();
         const b = t.getBoundingClientRect();
         if (!r || !r.width || !r.height) return;
         x = clamp1(((b.left + b.width / 2 - r.left) / r.width) * 2 - 1);
         y = clamp1(-(((b.top + b.height / 2 - r.top) / r.height) * 2 - 1));
-      } else if (t) {
+      } else if (t && typeof t === "object" && "x" in t && "y" in t) {
         x = t.x;
         y = t.y;
       } else {
@@ -839,7 +848,8 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
     });
 
     const L = THREE.MathUtils.lerp;
-    const timer = typeof (THREE as any).Timer === "function" ? new (THREE as any).Timer() : null;
+    const timerClass = (THREE as unknown as ThreeWithTimer).Timer;
+    const timer = typeof timerClass === "function" ? new timerClass() : null;
     const startTime = performance.now();
     let sc = 1;
 
@@ -859,7 +869,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
       if (isSpeaking) {
         targetLvl = 0.35 + 0.35 * Math.abs(Math.sin(t * 4.8)) * (0.6 + 0.4 * Math.sin(t * 1.9));
       } else if (analyserRef.current && audioDataRef.current && !isMutedNow) {
-        analyserRef.current.getByteFrequencyData(audioDataRef.current as any);
+        analyserRef.current.getByteFrequencyData(audioDataRef.current as unknown as Uint8Array);
         let sum = 0;
         for (let i = 0; i < audioDataRef.current.length; i++) sum += audioDataRef.current[i];
         targetLvl = Math.min(1, (sum / audioDataRef.current.length / 255) * 2.8);
@@ -1013,23 +1023,20 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
           const mesh = obj as THREE.Mesh;
           if (mesh.geometry) mesh.geometry.dispose();
           if (mesh.material) {
-            if (Array.isArray(mesh.material)) {
-              mesh.material.forEach((mat) => {
-                if ((mat as any).map) (mat as any).map.dispose();
-                mat.dispose();
-              });
-            } else {
-              if ((mesh.material as any).map) (mesh.material as any).map.dispose();
-              mesh.material.dispose();
-            }
+            const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+            materials.forEach((mat) => {
+              const withMap = mat as MaterialWithMap;
+              if (withMap.map) withMap.map.dispose();
+              mat.dispose();
+            });
           }
         }
       });
       shadowTexture.dispose();
       tex.dispose();
 
-      if (timer && typeof (timer as any).dispose === "function") {
-        (timer as any).dispose();
+      if (timer && "dispose" in timer && typeof (timer as { dispose?: () => void }).dispose === "function") {
+        (timer as { dispose: () => void }).dispose();
       }
       renderer.dispose();
       if (typeof renderer.forceContextLoss === "function") {
@@ -1074,7 +1081,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
           </div>
 
           <div className="vo-header-right">
-            <button className="vo-nav-btn end" title="End call" onClick={onClose}>
+            <button className="vo-nav-btn end" title="End call" onClick={handleClose}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
                 <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 4 .65 2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A19.93 19.93 0 0 1 3 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2 12.84 12.84 0 0 0 .65 4 2 2 0 0 1-.45 2.11L8.93 9.4" />
                 <line x1="23" y1="1" x2="1" y2="23" />
@@ -1172,7 +1179,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
                 </button>
               </form>
 
-              <button type="button" className="vo-round-btn end" aria-label="End call" onClick={onClose}>
+              <button type="button" className="vo-round-btn end" aria-label="End call" onClick={handleClose}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
@@ -1269,7 +1276,7 @@ export default function VoiceOrbScreen({ isOpen, onClose }: VoiceOrbScreenProps)
             </svg>
           </button>
 
-          <button className="vo-docked-btn end" title="End call" onClick={onClose}>
+          <button className="vo-docked-btn end" title="End call" onClick={handleClose}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
