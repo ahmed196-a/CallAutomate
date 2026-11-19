@@ -10,8 +10,6 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const AGENT_NAME = process.env.LIVEKIT_AGENT_NAME || "callautomate-sarah";
-
 export async function POST(req: Request) {
   try {
     const ip = getClientIp(req);
@@ -65,7 +63,11 @@ export async function POST(req: Request) {
     });
 
     at.roomConfig = new RoomConfiguration({
-      agents: [new RoomAgentDispatch({ agentName: AGENT_NAME })],
+      agents: [
+        new RoomAgentDispatch({
+          agentName: process.env.LIVEKIT_AGENT_NAME || "callautomate-agent",
+        }),
+      ],
     });
 
     return NextResponse.json(
