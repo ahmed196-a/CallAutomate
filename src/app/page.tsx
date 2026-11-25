@@ -996,14 +996,14 @@ export default function Home() {
           curRafId = null;
           const dx = tx - x;
           const dy = ty - y;
-          if (Math.hypot(dx, dy) < 0.1) {
+          if (Math.hypot(dx, dy) < 0.15) {
             x = tx;
             y = ty;
             if (cr) cr.style.transform = "translate(" + x + "px," + y + "px)";
             return;
           }
-          x += dx * 0.15;
-          y += dy * 0.15;
+          x += dx * 0.32;
+          y += dy * 0.32;
           if (cr) cr.style.transform = "translate(" + x + "px," + y + "px)";
           curRafId = requestAnimationFrame(l);
         }
@@ -1148,9 +1148,20 @@ export default function Home() {
       pick("ps", (v) => {
         ps = v;
       });
-      if (nm) nm.oninput = up;
+      let nmDebounce: ReturnType<typeof setTimeout> | null = null;
+      if (nm) {
+        nm.oninput = () => {
+          const n = (nm ? nm.value.trim() : "") || "Your restaurant";
+          const pn = document.getElementById("pn");
+          if (pn) pn.textContent = n + " AI";
+          if (nmDebounce) clearTimeout(nmDebounce);
+          nmDebounce = setTimeout(() => {
+            up(false);
+          }, 120);
+        };
+      }
 
-      function up() {
+      function up(rebuildMenu = true) {
         if (!pv || !gr) return;
         const n = (nm ? nm.value.trim() : "") || "Your restaurant";
         const d = C[cz] || C.Pizza;
@@ -1163,18 +1174,20 @@ export default function Home() {
         pv.style.setProperty("--pa", rgb(d.c[0]));
         pv.style.setProperty("--pb", rgb(d.c[1]));
 
-        const mnEl = document.getElementById("mn");
-        if (mnEl) {
-          mnEl.innerHTML = d.m
-            .map(
-              (m, k) =>
-                '<span style="animation-delay:' +
-                k * 0.12 +
-                's">' +
-                m +
-                "</span>"
-            )
-            .join("");
+        if (rebuildMenu) {
+          const mnEl = document.getElementById("mn");
+          if (mnEl) {
+            mnEl.innerHTML = d.m
+              .map(
+                (m, k) =>
+                  '<span style="animation-delay:' +
+                  k * 0.12 +
+                  's">' +
+                  m +
+                  "</span>"
+              )
+              .join("");
+          }
         }
 
         const syEl = document.getElementById("sy");
@@ -1190,7 +1203,7 @@ export default function Home() {
           }, 28);
         }
       }
-      up();
+      up(true);
     })();
 
     // Module 5: ROI Calculator
@@ -2200,10 +2213,12 @@ export default function Home() {
         dd.querySelectorAll(".dm2 a").forEach((a) => {
           a.addEventListener("click", () => {
             dd.classList.remove("open");
+            dd.classList.add("closed");
             dt.setAttribute("aria-expanded", "false");
             dd.blur();
             if (document.activeElement)
               (document.activeElement as HTMLElement).blur();
+            setTimeout(() => dd.classList.remove("closed"), 400);
           });
         });
       }
@@ -2547,6 +2562,34 @@ export default function Home() {
           }, 700);
         };
       }
+
+      const onIntroEsc = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          if (iskp && typeof (iskp as HTMLElement).click === "function") {
+            (iskp as HTMLElement).click();
+          } else {
+            if (done) return;
+            done = 1;
+            if ((window as any).sfx) (window as any).sfx.stopRing();
+            try {
+              window.speechSynthesis.cancel();
+            } catch {}
+            quiet();
+            if (inn) inn.classList.add("out");
+            go();
+            setTimeout(() => {
+              if (inn) inn.style.display = "none";
+            }, 700);
+          }
+        }
+      };
+      window.addEventListener("keydown", onIntroEsc);
+      (window as any).__introCleanup = () => {
+        window.removeEventListener("keydown", onIntroEsc);
+      };
+      setTimeout(() => {
+        if (!document.body.classList.contains("go")) go();
+      }, 4000);
 
       function tw(t: string, cb: () => void) {
         if (!cp) return;
@@ -3266,6 +3309,9 @@ export default function Home() {
       if ((window as any).__cursorCleanup) {
         (window as any).__cursorCleanup();
       }
+      if ((window as any).__introCleanup) {
+        (window as any).__introCleanup();
+      }
       if ((window as any).__posDemoCleanup) {
         (window as any).__posDemoCleanup();
       }
@@ -3693,7 +3739,7 @@ export default function Home() {
         </div>
       </header>
 
-      <section id="products" style={{ paddingTop: "70px" }}>
+      <section id="products" style={{ paddingTop: "70px", paddingBottom: "24px" }}>
         <div
           className="gt"
           aria-hidden="true"
