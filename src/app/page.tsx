@@ -4189,19 +4189,79 @@ export default function Home() {
             <div className="off">
               <h3>Without CallAutomate</h3>
               <ul>
-                <li>Phones ring out during the rush</li>
-                <li>DMs sit unread overnight</li>
-                <li>Staff retype every order</li>
-                <li>Marketplaces take a cut</li>
+                <li>
+                  <span className="x-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </span>
+                  <span>Phones ring out during the rush</span>
+                </li>
+                <li>
+                  <span className="x-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </span>
+                  <span>DMs sit unread overnight</span>
+                </li>
+                <li>
+                  <span className="x-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </span>
+                  <span>Staff retype every order</span>
+                </li>
+                <li>
+                  <span className="x-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </span>
+                  <span>Marketplaces take a cut</span>
+                </li>
               </ul>
             </div>
             <div className="on">
               <h3>With CallAutomate</h3>
               <ul>
-                <li>Every call answered instantly</li>
-                <li>Chats replied to, 24/7</li>
-                <li>Orders flow into your POS</li>
-                <li>Direct orders you keep</li>
+                <li>
+                  <span className="chk-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span>Every call answered instantly</span>
+                </li>
+                <li>
+                  <span className="chk-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span>Chats replied to, 24/7</span>
+                </li>
+                <li>
+                  <span className="chk-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span>Orders flow into your POS</span>
+                </li>
+                <li>
+                  <span className="chk-ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  <span>Direct orders you keep</span>
+                </li>
               </ul>
             </div>
           </div>
